@@ -6,6 +6,7 @@
     <title>Vení Guapa</title>
     <link rel="stylesheet" href="styles.css" />
 </head>
+<script src="scripts.js"></script> 
 <body>
 <header>
     <h1>Vení Guapa</h1>
@@ -26,27 +27,18 @@
         <p>Descubrí nuestra selección de ropa con estilo y actitud. ¡Vení Guapa!</p>
     </section>
 
-    <section id="menu">
-        <h2>Nuestros Productos</h2>
-        <div class="producto">
-            <img src="img/remera.jpeg" alt="Producto 1">
-            <h3>Remera estampada</h3>
-            <p>$850</p>
+    <section id="categorias">
+        <h2>Categorías</h2>
+        <div class="botones-categorias">
+            <button onclick="mostrarCategoria('remeras')">Remeras</button>
+            <button onclick="mostrarCategoria('blazers')">Blazers</button>
+            <button onclick="mostrarCategoria('pantalones')">Pantalones</button>
+            <button onclick="mostrarCategoria('vestidos')">Vestidos</button>
+            <button onclick="mostrarCategoria('accesorios')">Accesorios</button>
         </div>
-        <!-- Agregá más productos similares -->
-    </section>
 
-    <section id="galeria">
-        <h2>Galería</h2>
-        <div class="galeria-imagenes">
-            <div class="item-galeria">
-                <img src="img/blazer.jpeg" alt="Look 1">
-                <p>Blazer $900</p>
-            </div>
-            <div class="item-galeria">
-                <img src="img/blazer.jpeg" alt="Look 2">
-                <p>Blazer $900</p>
-            </div>
+        <div class="galeria-imagenes" id="galeria-contenido">
+            <!-- Acá se mostrarán dinámicamente las imágenes -->
         </div>
     </section>
 

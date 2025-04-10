@@ -127,10 +127,69 @@ footer {
     section h2 {
         font-size: 1.4rem;
     }
+
+    .botones-categorias {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .botones-categorias button {
+        width: 100%;
+        max-width: 300px;
+    }
+
+    .galeria-imagenes {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        padding: 0 1rem;
+    }
 }
 
 #menu {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 1.5rem;
+}
+
+.botones-categorias {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    margin-bottom: 2rem;
+    justify-content: center;
+}
+
+.botones-categorias button {
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 5px;
+    background-color: var(--color-principal);
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.botones-categorias button:hover {
+    background-color: #a46b4b;
+}
+
+.item-galeria {
+    text-align: center;
+}
+
+@media (max-width: 600px) {
+    .botones-categorias {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .botones-categorias button {
+        width: 100%;
+        max-width: 300px;
+    }
+
+    .galeria-imagenes {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        padding: 0 1rem;
+    }
 }
