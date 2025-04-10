@@ -6,13 +6,13 @@ const productos = {
         { img: 'img/blazer.jpeg', nombre: 'Blazer negro', precio: '$900' }
     ],
     pantalones: [
-        { img: 'img/pantalon.jpeg', nombre: 'Pantalón sastrero', precio: '$1200' }
+        { img: 'img/remera.jpeg', nombre: 'Pantalón sastrero', precio: '$1200' }
     ],
     vestidos: [
-        { img: 'img/vestido.jpeg', nombre: 'Vestido largo', precio: '$1400' }
+        { img: 'img/blazer.jpeg', nombre: 'Vestido largo', precio: '$1400' }
     ],
     accesorios: [
-        { img: 'img/accesorio.jpeg', nombre: 'Collar dorado', precio: '$500' }
+        { img: 'img/remera.jpeg', nombre: 'Collar dorado', precio: '$500' }
     ]
 };
 
