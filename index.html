@@ -28,16 +28,30 @@
 
     <section id="categorias">
         <h2>Categorías</h2>
-        <div class="botones-categorias">
-            <button onclick="mostrarCategoria('remeras')">Remeras</button>
-            <button onclick="mostrarCategoria('blazers')">Blazers</button>
-            <button onclick="mostrarCategoria('pantalones')">Pantalones</button>
-            <button onclick="mostrarCategoria('vestidos')">Vestidos</button>
-            <button onclick="mostrarCategoria('accesorios')">Accesorios</button>
+
+        <div class="categoria">
+            <button onclick="toggleCategoria('remeras')">Remeras</button>
+            <div class="galeria-imagenes" id="remeras" style="display: none;"></div>
         </div>
 
-        <div class="galeria-imagenes" id="galeria-contenido">
-            <!-- Acá se mostrarán dinámicamente las imágenes -->
+        <div class="categoria">
+            <button onclick="toggleCategoria('blazers')">Blazers</button>
+            <div class="galeria-imagenes" id="blazers" style="display: none;"></div>
+        </div>
+
+        <div class="categoria">
+            <button onclick="toggleCategoria('pantalones')">Pantalones</button>
+            <div class="galeria-imagenes" id="pantalones" style="display: none;"></div>
+        </div>
+
+        <div class="categoria">
+            <button onclick="toggleCategoria('vestidos')">Vestidos</button>
+            <div class="galeria-imagenes" id="vestidos" style="display: none;"></div>
+        </div>
+
+        <div class="categoria">
+            <button onclick="toggleCategoria('accesorios')">Accesorios</button>
+            <div class="galeria-imagenes" id="accesorios" style="display: none;"></div>
         </div>
     </section>
 

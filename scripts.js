@@ -16,22 +16,27 @@ const productos = {
     ]
 };
 
-function mostrarCategoria(categoria) {
-    const contenedor = document.getElementById('galeria-contenido');
-    contenedor.innerHTML = '';
+function toggleCategoria(categoria) {
+    const contenedor = document.getElementById(categoria);
+    const visible = contenedor.style.display === 'block';
 
-    productos[categoria].forEach(prod => {
-        const item = document.createElement('div');
-        item.className = 'item-galeria';
-        item.innerHTML = `
-            <img src="${prod.img}" alt="${prod.nombre}">
-            <p>${prod.nombre} ${prod.precio}</p>
-        `;
-        contenedor.appendChild(item);
+    // Oculta todas las galerías
+    document.querySelectorAll('.galeria-imagenes').forEach(div => {
+        div.style.display = 'none';
     });
-}
 
-// Ejecutar al cargar la página
-document.addEventListener("DOMContentLoaded", function () {
-    mostrarCategoria('remeras');
-});
+    // Si no estaba visible, la mostramos con contenido
+    if (!visible) {
+        contenedor.innerHTML = '';
+        productos[categoria].forEach(prod => {
+            const item = document.createElement('div');
+            item.className = 'item-galeria';
+            item.innerHTML = `
+                <img src="${prod.img}" alt="${prod.nombre}">
+                <p>${prod.nombre} ${prod.precio}</p>
+            `;
+            contenedor.appendChild(item);
+        });
+        contenedor.style.display = 'block';
+    }
+}
