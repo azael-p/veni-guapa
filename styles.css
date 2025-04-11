@@ -64,27 +64,7 @@ section h2 {
     color: var(--color-principal);
 }
 
-.producto {
-    background-color: white;
-    border: 1px solid #ddd;
-    padding: 1rem;
-    border-radius: 10px;
-    max-width: 100%;
-    width: 300px;
-    margin: 1rem 0;
-}
 
-.producto img {
-    display: block;
-    margin: 0 auto;
-    max-width: 100%;
-    border-radius: 8px;
-}
-
-.producto img {
-    max-width: 100%;
-    border-radius: 8px;
-}
 
 .galeria-imagenes {
     display: grid;
@@ -128,15 +108,7 @@ footer {
         font-size: 1.4rem;
     }
 
-    .botones-categorias {
-        flex-direction: column;
-        align-items: center;
-    }
 
-    .botones-categorias button {
-        width: 100%;
-        max-width: 300px;
-    }
 
     .galeria-imagenes {
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -149,13 +121,6 @@ footer {
     }
 
 }
-
-#menu {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-}
-
 
 .item-galeria {
     text-align: center;
@@ -180,4 +145,48 @@ footer {
 
 .categoria button:hover {
     background-color: #a46b4b;
+}
+
+.item-galeria {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 1rem;
+    background: white;
+    border-radius: 10px;
+}
+
+header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background-color: var(--color-principal);
+}
+
+/* Solo el título fijo */
+.titulo-header {
+    padding: 1rem;
+    text-align: center;
+    background-color: var(--color-principal);
+    color: white;
+}
+
+/* Menú que se va al hacer scroll */
+.menu-principal {
+    position: static;
+    text-align: center;
+    background-color: var(--color-principal);
+    padding-bottom: 1rem;
+}
+
+.menu-principal ul {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    list-style: none;
+}
+
+.menu-principal a {
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
 }
