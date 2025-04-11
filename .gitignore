@@ -1,0 +1,10 @@
+# macOS
+.DS_Store
+
+# IDEs
+.idea/
+
+# Node (si no usás npm ni nada)
+node_modules/
+package-lock.json
+package.json
