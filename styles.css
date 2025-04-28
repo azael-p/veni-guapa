@@ -23,10 +23,33 @@ body {
 }
 
 header {
-    background-color: var(--color-principal);
+    background-image: url('logosetc/header.jpg');
+    background-size: cover;
+    background-position: center;
+    min-height: 300px; /* NUEVO: hace más alto el header */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
     color: white;
-    padding: 1.5rem;
     text-align: center;
+}
+
+.titulo-overlay {
+    background-color: rgba(0, 0, 0, 0.4); /* sombra suave */
+    display: inline-block;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    margin-top: 2rem;
+}
+
+.eslogan {
+    font-size: 1rem;
+    color: #f3e5dc;
+    font-weight: 300;
+    margin-top: 0.5rem;
 }
 
 header h1 {
@@ -169,18 +192,18 @@ header {
 
 /* Solo el título fijo */
 .titulo-header {
-    padding: 1rem;
+    padding: 0;
     text-align: center;
-    background-color: var(--color-principal);
+    background-color: transparent;
     color: white;
 }
 
 /* Menú que se va al hacer scroll */
 .menu-principal {
     position: static;
-    text-align: center;
     background-color: var(--color-principal);
-    padding-bottom: 1rem;
+    text-align: center;
+    padding: 1rem 0;
 }
 
 .menu-principal ul {
