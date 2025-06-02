@@ -38,7 +38,7 @@ header {
 }
 
 .titulo-overlay {
-    background-color: rgba(0, 0, 0, 0.4); /* sombra suave */
+    background-color: rgba(0, 0, 0, 0.2); /* sombra suave */
     display: inline-block;
     padding: 1rem 2rem;
     border-radius: 8px;
@@ -181,13 +181,6 @@ footer {
 .item-galeria img:hover {
     transform: scale(1.05);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-}
-
-header {
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    background-color: var(--color-principal);
 }
 
 /* Solo el título fijo */
