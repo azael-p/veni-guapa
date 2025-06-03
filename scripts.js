@@ -40,3 +40,8 @@ function toggleCategoria(categoria) {
         contenedor.style.display = 'block';
     }
 }
+
+window.addEventListener("scroll", function () {
+    const header = document.querySelector("header");
+    header.classList.toggle("compacto", window.scrollY > 50);
+});

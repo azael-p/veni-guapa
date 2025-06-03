@@ -26,7 +26,7 @@ header {
     background-image: url('logosetc/header.jpg');
     background-size: cover;
     background-position: center;
-    min-height: 300px; /* NUEVO: hace más alto el header */
+    min-height: 400px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -38,11 +38,11 @@ header {
 }
 
 .titulo-overlay {
-    background-color: rgba(0, 0, 0, 0.2); /* sombra suave */
-    display: inline-block;
+    background-color: rgba(0, 0, 0, 0.08);
     padding: 1rem 2rem;
     border-radius: 8px;
     margin-top: 2rem;
+    display: inline-block;
 }
 
 .eslogan {
@@ -228,4 +228,17 @@ footer {
 /* Aplicar a cada ítem de galería */
 .item-galeria {
     animation: fadeIn 2s ease;
+}
+header.compacto {
+    min-height: 100px;
+    transition: min-height 0.3s ease, padding 0.3s ease;
+}
+
+header.compacto h1 {
+    font-size: 1.4rem;
+}
+
+header.compacto .titulo-overlay {
+    padding: 0.5rem 1rem;
+    background-color: rgba(0, 0, 0, 0.3);
 }
