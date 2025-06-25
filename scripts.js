@@ -41,7 +41,17 @@ function toggleCategoria(categoria) {
     }
 }
 
+let headerCompactoActivo = false;
+
 window.addEventListener("scroll", function () {
     const header = document.querySelector("header");
-    header.classList.toggle("compacto", window.scrollY > 50);
+    const scrolled = window.scrollY > 50;
+
+    if (scrolled && !headerCompactoActivo) {
+        header.classList.add("compacto");
+        headerCompactoActivo = true;
+    } else if (!scrolled && headerCompactoActivo) {
+        header.classList.remove("compacto");
+        headerCompactoActivo = false;
+    }
 });
