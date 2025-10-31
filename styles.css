@@ -29,7 +29,7 @@ header {
   background-image: url('logosetc/header.jpg');
   background-size: cover;
   background-position: center;
-  height: 400px;
+  padding: 100px 0; /* En lugar de height */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -38,13 +38,12 @@ header {
   z-index: 1000;
   color: white;
   text-align: center;
-  transition: height 0.3s ease;
-  overflow: hidden;
+  transition: padding 0.4s ease, background-color 0.4s ease;
 }
 
 header.compacto {
-  height: 120px;
-  overflow: hidden;
+  padding: 40px 0; /* Se achica sin mover el contenido */
+  background-color: rgba(0, 0, 0, 0.4);
 }
 
 header.compacto h1 {
@@ -166,41 +165,6 @@ section h2 {
   background-color: #a46b4b;
 }
 
-/* Galería */
-.galeria-imagenes {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1rem;
-  max-width: var(--max-width);
-  margin: 0 auto;
-}
-
-.galeria-imagenes img {
-  width: 200px;
-  height: auto;
-  border-radius: 8px;
-  object-fit: cover;
-}
-
-/* Ítems de galería */
-.item-galeria {
-  text-align: center;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  padding: 1rem;
-  background: white;
-  border-radius: 10px;
-  animation: fadeIn 2s ease;
-}
-
-.item-galeria img {
-  transition: transform 0.3s ease;
-}
-
-.item-galeria img:hover {
-  transform: scale(1.05);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-}
-
 /* Footer */
 footer {
   background-color: var(--color-principal);
@@ -249,5 +213,97 @@ footer {
   .categoria button {
     width: 100%;
     max-width: 300px;
+  }
+}
+
+/* Carruseles de categorías */
+.boton-categoria {
+  padding: 0.8rem 1.5rem;
+  background-color: var(--color-principal);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-bottom: 1rem;
+  transition: background-color 0.3s;
+}
+
+.boton-categoria:hover {
+  background-color: #a46b4b;
+}
+
+.carrusel {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.galeria-imagenes {
+  display: flex;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  gap: 1rem;
+  padding: 1rem;
+  scroll-snap-type: x mandatory;
+  width: 90%;
+}
+
+.galeria-imagenes::-webkit-scrollbar {
+  display: none;
+}
+
+.item-galeria {
+  flex: 0 0 auto;
+  width: 220px;
+  border-radius: 8px;
+  overflow: hidden;
+  scroll-snap-align: center;
+  background: white;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease;
+}
+
+.item-galeria:hover {
+  transform: scale(1.05);
+}
+
+.item-galeria img {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+}
+
+.flecha {
+  background: rgba(0, 0, 0, 0.4);
+  color: white;
+  border: none;
+  font-size: 2rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  border-radius: 5px;
+  transition: background 0.3s;
+  z-index: 10;
+}
+
+.flecha:hover {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.flecha.izquierda { left: 0; }
+.flecha.derecha { right: 0; }
+
+@media (max-width: 600px) {
+  .item-galeria {
+    width: 150px;
+  }
+
+  .item-galeria img {
+    height: 180px;
   }
 }
