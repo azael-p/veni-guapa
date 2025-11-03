@@ -4,6 +4,7 @@
 # IDEs
 .idea/
 admin/admin.html
+admin/login.html
 
 # Node
 node_modules/

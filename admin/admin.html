@@ -9,6 +9,7 @@
 <body>
 
     <script>
+        // Verificar si el usuario está autorizado, si no, redirigir al login
         if (sessionStorage.getItem("autorizado") !== "true") {
         window.location.href = "login.html";
         }
