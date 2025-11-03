@@ -4,7 +4,8 @@
 # IDEs
 .idea/
 
-# Node (si no usás npm ni nada)
+# Node
 node_modules/
 package-lock.json
-package.json
+serviceAccountKey.json
+.env

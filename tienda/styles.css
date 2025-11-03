@@ -19,26 +19,38 @@
 
 body {
   font-family: 'Outfit', sans-serif;
-  background-color: var(--color-claro);
-  color: var(--color-texto);
+  background: url('/logosetc/header.jpg') no-repeat center center fixed;
+  background-size: cover;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  color: white;
   line-height: 1.6;
 }
 
-/* Header */
+.overlay-fondo {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.25);
+  z-index: 1;
+}
+header, main, footer {
+  position: relative;
+  z-index: 2;
+}
+
 header {
-  background-image: url('logosetc/header.jpg');
-  background-size: cover;
-  background-position: center;
-  padding: 100px 0; /* En lugar de height */
+  background: none;
+  padding: 100px 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: sticky;
-  top: 0;
-  z-index: 1000;
+  position: relative;
   color: white;
   text-align: center;
-  transition: padding 0.4s ease, background-color 0.4s ease;
+  z-index: 10;
 }
 
 header.compacto {
@@ -235,10 +247,18 @@ footer {
 
 .carrusel {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
+  overflow: hidden;
+  padding: 0 4.5rem;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: max-height 0.5s ease, opacity 0.4s ease, transform 0.4s ease;
+}
+
+.carrusel.visible {
+  max-height: 520px; /* suficiente para el alto del carrusel */
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .galeria-imagenes {
@@ -248,7 +268,7 @@ footer {
   gap: 1rem;
   padding: 1rem;
   scroll-snap-type: x mandatory;
-  width: 90%;
+  width: 100%;
 }
 
 .galeria-imagenes::-webkit-scrollbar {
@@ -276,27 +296,34 @@ footer {
   object-fit: cover;
 }
 
+/* --- Flechas del carrusel --- */
 .flecha {
-  background: rgba(0, 0, 0, 0.4);
-  color: white;
-  border: none;
-  font-size: 2rem;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  border-radius: 5px;
-  transition: background 0.3s;
-  z-index: 10;
+  background-color: var(--color-principal);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  padding: 0.6rem 0.9rem;
+  cursor: pointer;
+  z-index: 15;
+  transition: all 0.3s ease;
+}
+
+/* Mueve las flechas hacia adentro del padding del carrusel */
+.flecha.izquierda {
+  left: 0.5rem;
+}
+
+.flecha.derecha {
+  right: 0.5rem;
 }
 
 .flecha:hover {
-  background: rgba(0, 0, 0, 0.6);
+  background-color: #7a4b33;
+  transform: translateY(-50%) scale(1.1);
 }
-
-.flecha.izquierda { left: 0; }
-.flecha.derecha { right: 0; }
 
 @media (max-width: 600px) {
   .item-galeria {
@@ -306,4 +333,145 @@ footer {
   .item-galeria img {
     height: 180px;
   }
+}
+
+/* --- Modal de imagen ampliada --- */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.9);
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.modal img {
+  width: 100vw;           /* ocupa todo el ancho disponible */
+  height: 100vh;          /* ocupa toda la altura disponible */
+  object-fit: contain;    /* mantiene proporción sin recortar */
+  border-radius: 0;       /* sin bordes para maximizar espacio */
+  box-shadow: none;       /* quita el borde blanco, se ve más limpio */
+  cursor: default;
+  position: relative;
+  z-index: 2050;
+}
+
+.modal img {
+  transform: scale(0.95);
+  transition: transform 0.3s ease;
+}
+.modal[style*="display: flex"] img {
+  transform: scale(1);
+}
+
+/* Botón cerrar */
+.cerrar {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  color: white;
+  font-size: 2rem;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 2100;
+  transition: color 0.3s;
+}
+
+.cerrar:hover {
+  color: #ccc;
+}
+
+/* --- Flechas de navegación dentro del modal --- */
+.modal-flecha {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  font-size: 3rem;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  transition: background 0.3s;
+  z-index: 2100;
+  display: block;
+}
+
+.modal-flecha:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.modal-flecha.izquierda {
+  left: 30px;
+}
+
+.modal-flecha.derecha {
+  right: 30px;
+}
+
+.modal {
+  z-index: 3000 !important;
+}
+
+/* --- Estado vacío de una categoría --- */
+.empty-state {
+  width: 100%;
+  text-align: center;
+  color: #888;
+  font-size: 1rem;
+  padding: 1.5rem 0;
+  font-style: italic;
+}
+
+/* --- Animación de oleada para imágenes --- */
+@keyframes fadeInWave {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Partimos ocultas y suaves (ya usás .lazy-img en el HTML que vamos a generar) */
+.lazy-img {
+  opacity: 0;
+  transform: scale(0.98);
+  transition: opacity 380ms ease, transform 380ms ease;
+}
+
+/* Cuando carga, además del fade-in básico, disparamos la oleada */
+.lazy-img.loaded {
+  opacity: 1;
+  transform: none;
+  animation: fadeInWave 0.6s ease forwards;
+}
+
+/* --- Mostrar nombre y precio sobre la imagen --- */
+.item-galeria {
+  position: relative;
+  overflow: hidden;
+}
+
+.item-galeria p {
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 6px;
+  margin: 0;
+  text-align: center;
+  font-weight: 500;
+  font-size: 0.95rem;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  border-radius: 0 0 10px 10px;
 }

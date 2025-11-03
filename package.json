@@ -1,0 +1,32 @@
+{
+  "name": "veni-guapa",
+  "version": "1.0.0",
+  "description": "Este proyecto es una página web desarrollada con fines personales y educativos. Tomé como inspiración una tienda real de una amiga para practicar diseño, desarrollo y organización de un sitio web de catálogo simple.",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/azael-p/veni-guapa.git"
+  },
+  "keywords": [],
+  "author": "Azael Pignanessi",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/azael-p/veni-guapa/issues"
+  },
+  "homepage": "https://github.com/azael-p/veni-guapa#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "firebase-admin": "^13.5.0",
+    "multer": "^2.0.2"
+  }
+}

@@ -17,14 +17,6 @@
     </div>
 </header>
 
-<nav class="menu-principal">
-    <ul>
-        <li><a href="#inicio">Inicio</a></li>
-        <li><a href="#categorias">Categorías</a></li>
-        <li><a href="#sobre-nosotros">Sobre Nosotros</a></li>
-        <li><a href="#contacto">Contacto</a></li>
-    </ul>
-</nav>
 
 <main>
     <section id="inicio">
@@ -37,7 +29,7 @@
 
         <div class="categoria">
             <button class="boton-categoria" data-categoria="remeras">Remeras</button>
-            <div class="carrusel" id="remeras" style="display: none;">
+            <div class="carrusel" id="remeras">
                 <button class="flecha izquierda" data-categoria="remeras">‹</button>
                 <div class="galeria-imagenes"></div>
                 <button class="flecha derecha" data-categoria="remeras">›</button>
@@ -46,7 +38,7 @@
 
         <div class="categoria">
             <button class="boton-categoria" data-categoria="blazers">Blazers</button>
-            <div class="carrusel" id="blazers" style="display: none;">
+            <div class="carrusel" id="blazers">
                 <button class="flecha izquierda" data-categoria="blazers">‹</button>
                 <div class="galeria-imagenes"></div>
                 <button class="flecha derecha" data-categoria="blazers">›</button>
@@ -55,7 +47,7 @@
 
         <div class="categoria">
             <button class="boton-categoria" data-categoria="pantalones">Pantalones</button>
-            <div class="carrusel" id="pantalones" style="display: none;">
+            <div class="carrusel" id="pantalones">
                 <button class="flecha izquierda" data-categoria="pantalones">‹</button>
                 <div class="galeria-imagenes"></div>
                 <button class="flecha derecha" data-categoria="pantalones">›</button>
@@ -64,7 +56,7 @@
 
         <div class="categoria">
             <button class="boton-categoria" data-categoria="vestidos">Vestidos</button>
-            <div class="carrusel" id="vestidos" style="display: none;">
+            <div class="carrusel" id="vestidos">
                 <button class="flecha izquierda" data-categoria="vestidos">‹</button>
                 <div class="galeria-imagenes"></div>
                 <button class="flecha derecha" data-categoria="vestidos">›</button>
@@ -73,7 +65,7 @@
 
         <div class="categoria">
             <button class="boton-categoria" data-categoria="accesorios">Accesorios</button>
-            <div class="carrusel" id="accesorios" style="display: none;">
+            <div class="carrusel" id="accesorios">
                 <button class="flecha izquierda" data-categoria="accesorios">‹</button>
                 <div class="galeria-imagenes"></div>
                 <button class="flecha derecha" data-categoria="accesorios">›</button>
@@ -101,8 +93,18 @@
     <p>&copy; 2025 Vení Guapa - Todos los derechos reservados.</p>
 </footer>
 
+<!-- Modal para mostrar imágenes ampliadas -->
+<div id="modal-imagen" class="modal">
+    <span class="cerrar">&times;</span>
+    <button class="modal-flecha izquierda">‹</button>
+    <img class="imagen-ampliada" id="imagen-grande" src="" alt="">
+    <button class="modal-flecha derecha">›</button>
+</div>
+
+<div class="overlay-fondo"></div>
 
 <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
-<script src="scripts.js"></script>
+<script type="module" src="scripts.js"></script>
+
 </body>
 </html>

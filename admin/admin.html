@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel de Administración - Vení Guapa</title>
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+    <script>
+        if (sessionStorage.getItem("autorizado") !== "true") {
+        window.location.href = "login.html";
+        }
+    </script>
+
+    <h1>Panel de Administración</h1>
+
+    <form id="formProducto">
+    <label>Nombre del producto:</label>
+    <input type="text" id="nombre" required>
+
+    <label>Precio:</label>
+    <input type="text" id="precio" required>
+
+    <label>Categoría:</label>
+    <select id="categoria" required>
+        <option value="remeras">Remeras</option>
+        <option value="blazers">Blazers</option>
+        <option value="pantalones">Pantalones</option>
+        <option value="vestidos">Vestidos</option>
+        <option value="accesorios">Accesorios</option>
+    </select>
+
+    <label>Imagen:</label>
+    <input type="file" id="imagen" accept="image/*" required>
+
+    <button type="submit">Agregar producto</button>
+    </form>
+
+    <div class="filtro">
+        <label for="filtroCategoria">Filtrar por categoría:</label>
+        <select id="filtroCategoria">
+            <option value="todas">Todas</option>
+            <option value="remeras">Remeras</option>
+            <option value="blazers">Blazers</option>
+            <option value="pantalones">Pantalones</option>
+            <option value="vestidos">Vestidos</option>
+            <option value="accesorios">Accesorios</option>
+        </select>
+    </div>
+
+    <div class="productos" id="listaProductos"></div>
+
+    <script type="module" src="admin.js"></script>
+</body>
+</html>
