@@ -3,6 +3,7 @@
 
 # IDEs
 .idea/
+admin/admin.html
 
 # Node
 node_modules/
