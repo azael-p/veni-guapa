@@ -5,6 +5,8 @@ import admin from "firebase-admin";
 import { readFileSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import dotenv from "dotenv";
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,7 +25,31 @@ const db = admin.firestore();
 const bucket = admin.storage().bucket();
 
 const app = express();
-app.use(cors());
+const ADMIN_KEY = process.env.ADMIN_KEY || "CAMBIA-ESTA-CLAVE";
+// 🔒 CORS restringido a orígenes permitidos
+const ALLOWED_ORIGINS = new Set([
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "http://localhost:5500",
+  "http://127.0.0.1:5500",
+  // Agregá aquí tus dominios de producción cuando publiques, por ejemplo:
+  // "https://veniguapa.com",
+  // "https://www.veniguapa.com"
+]);
+
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      // Requests same-origin (sin header Origin) o desde herramientas CLI
+      if (!origin) return cb(null, true);
+      if (ALLOWED_ORIGINS.has(origin)) return cb(null, true);
+      return cb(new Error("CORS: origin no permitido"), false);
+    },
+    methods: ["GET", "POST", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "x-admin-key"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 
@@ -35,6 +61,31 @@ app.use("/admin", express.static(path.join(__dirname, "admin")));
 
 // Configuración de Multer (para recibir imágenes)
 const upload = multer({ storage: multer.memoryStorage() });
+
+// 🚧 Guardia adicional por Origin/Referer para todas las rutas /api
+app.use("/api", (req, res, next) => {
+  const origin = req.headers.origin || "";
+  const referer = req.headers.referer || "";
+  let permitido = false;
+
+  if (origin && ALLOWED_ORIGINS.has(origin)) permitido = true;
+  if (!permitido && referer) {
+    try {
+      const refOrigin = new URL(referer).origin;
+      if (ALLOWED_ORIGINS.has(refOrigin)) permitido = true;
+    } catch (_) { /* referer malformado: ignorar */ }
+  }
+
+  if (!permitido) return res.status(403).json({ error: "Origen no permitido" });
+  // 🔐 Requiere clave para operaciones que modifican el estado
+  if (req.method === "POST" || req.method === "DELETE") {
+    const key = req.header("x-admin-key") || "";
+    if (key !== ADMIN_KEY) {
+      return res.status(401).json({ error: "No autorizado" });
+    }
+  }
+  next();
+});
 
 // 📦 Endpoint para subir producto
 app.post("/api/productos", upload.single("imagen"), async (req, res) => {

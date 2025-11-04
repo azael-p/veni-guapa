@@ -14,6 +14,11 @@ const firebaseConfig = {
 // 🌐 URL del servidor: local (localhost/127.0.0.1) vs producción
 const isLocal = ["localhost", "127.0.0.1"].includes(window.location.hostname);
 const SERVER_URL = isLocal ? "http://localhost:3000" : "https://api.veniguapa.com";
+const ADMIN_TOKEN_KEY = 'vg_admin_key';
+function adminHeaders() {
+    const token = localStorage.getItem(ADMIN_TOKEN_KEY) || '';
+    return token ? { 'x-admin-key': token } : {};
+}
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 // Exponer para otros módulos/scripts si hiciera falta
@@ -51,9 +56,16 @@ form.addEventListener("submit", async (e) => {
 
     try {
         const respuesta = await fetch(`${SERVER_URL}/api/productos`, {
-            method: "POST",
-            body: formData
+        method: "POST",
+        headers: adminHeaders(),
+        body: formData
         });
+
+        if (respuesta.status === 401) {
+            alert('🔒 No autorizado. Ingresá de nuevo.');
+            window.location.href = '/admin/login.html';
+            return;
+        }
 
         const data = await respuesta.json();
 
@@ -63,7 +75,7 @@ form.addEventListener("submit", async (e) => {
         } else {
             alert("⚠️ Error al subir producto: " + (data.error || "Desconocido"));
         }
-    }catch (error) {
+    } catch (error) {
         console.error("Error:", error);
         alert("❌ No se pudo conectar con el servidor");
     }
@@ -74,9 +86,9 @@ function cargarProductos(filtro = "todas") {
     lista.innerHTML = "<p>Cargando...</p>";
 
     if (!db) {
-      console.warn("Firestore aún no está listo. Reintentando...");
-      setTimeout(() => cargarProductos(filtro), 100);
-      return;
+        console.warn("Firestore aún no está listo. Reintentando...");
+        setTimeout(() => cargarProductos(filtro), 100);
+        return;
     }
 
     const productosRef = collection(db, "productos");
@@ -140,7 +152,15 @@ document.addEventListener("click", async (e) => {
     const id = e.target.dataset.id;
     if (!confirm("¿Seguro que querés eliminar este producto?")) return;
 
-    const res = await fetch(`${SERVER_URL}/api/productos/${id}`, { method: "DELETE" });
+    const res = await fetch(`${SERVER_URL}/api/productos/${id}`, {
+        method: "DELETE",
+        headers: adminHeaders()
+    });
+    if (res.status === 401) {
+        alert('🔒 No autorizado. Ingresá de nuevo.');
+        window.location.href = '/admin/login.html';
+        return;
+    }
     let data = {};
     try {
         data = await res.json();
