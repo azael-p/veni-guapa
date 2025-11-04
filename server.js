@@ -10,11 +10,16 @@ dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const NODE_ENV = process.env.NODE_ENV || 'development';
+console.log('NODE_ENV =', NODE_ENV);
+const isProd = NODE_ENV === 'production';
 
 // ✅ Inicializar Firebase Admin con tu clave privada
 const serviceAccount = JSON.parse(
   readFileSync(path.join(__dirname, "serviceAccountKey.json"), "utf8")
 );
+
+console.log('NODE_ENV =', process.env.NODE_ENV); // debería imprimir "production" en Render
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -32,6 +37,8 @@ const ALLOWED_ORIGINS = new Set([
   "http://127.0.0.1:3000",
   "http://localhost:5500",
   "http://127.0.0.1:5500",
+  "https://veni-guapa.onrender.com",
+  "https://www.veni-guapa.onrender.com",
   // Agregá aquí tus dominios de producción cuando publiques, por ejemplo:
   // "https://veniguapa.com",
   // "https://www.veniguapa.com"
