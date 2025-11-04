@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Acceso - Panel Admin</title>
+    <style>
+        body {
+        background-color: #f9f4f0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        font-family: 'Poppins', sans-serif;
+        }   
+        .login-box {
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        text-align: center;
+        }
+        input {
+        padding: 0.5rem;
+        width: 100%;
+        margin: 0.5rem 0;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        }
+        button {
+        background: #603813;
+        color: white;
+        padding: 0.7rem 1.2rem;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-box">
+        <h2>Panel de Administración</h2>
+        <input type="password" id="password" placeholder="Clave de administración" />
+        <button id="loginBtn">Ingresar</button>
+        <p id="mensaje" style="color:red;"></p>
+    </div>
+
+    <script>
+    const loginBtn = document.getElementById("loginBtn");
+    const mensaje = document.getElementById("mensaje");
+    const input = document.getElementById("password");
+
+    function doLogin() {
+        const pass = input.value.trim();
+        if (!pass) {
+            mensaje.textContent = "Ingresá la clave de administración.";
+            return;
+        }
+        // Guardar clave para que admin.js la envíe como 'x-admin-key'
+        localStorage.setItem('vg_admin_key', pass);
+        // Flag de sesión (tu chequeo actual)
+        sessionStorage.setItem('autorizado', 'true');
+        // Ir al panel
+        window.location.href = 'admin.html';
+    }
+
+    loginBtn.addEventListener('click', doLogin);
+      // Permitir Enter para enviar
+    input.addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') doLogin();
+    });
+</script>
+</body>
+</html>

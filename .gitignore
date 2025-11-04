@@ -1,11 +1,6 @@
 # macOS
 .DS_Store
 
-# IDEs
-.idea/
-admin/admin.html
-admin/login.html
-
 # Node
 node_modules/
 package-lock.json
