@@ -17,7 +17,7 @@ document.addEventListener("click", (e) => {
 
 
 const firebaseConfig = {
-    apiKey: "AIzaSyAOUw1KysaVxC2YFyAGUvIgK2dYRZwh-3s",
+    apiKey: "AIzaSyCiZLb3nLawS3sQbvI0iWOi-fSCvnG4nr0",
     authDomain: "veni-guapa.firebaseapp.com",
     projectId: "veni-guapa",
     storageBucket: "veni-guapa.appspot.com",
