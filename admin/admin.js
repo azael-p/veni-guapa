@@ -17,8 +17,16 @@ const SERVER_URL = isLocal ? "http://localhost:3000" : "https://api.veniguapa.co
 const ADMIN_TOKEN_KEY = 'vg_admin_key';
 function adminHeaders() {
     const token = localStorage.getItem(ADMIN_TOKEN_KEY) || '';
-    return token ? { 'x-admin-key': token } : {};
+    const base = { 'Accept': 'application/json' };
+    return token ? { ...base, 'x-admin-key': token } : base;
 }
+function ensureAuth() {
+    const hasToken = !!localStorage.getItem(ADMIN_TOKEN_KEY);
+    if (!hasToken && !location.pathname.endsWith('/login.html')) {
+        window.location.replace('/admin/login.html');
+    }
+}
+ensureAuth();
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 // Exponer para otros módulos/scripts si hiciera falta
@@ -63,17 +71,22 @@ form.addEventListener("submit", async (e) => {
 
         if (respuesta.status === 401) {
             alert('🔒 No autorizado. Ingresá de nuevo.');
+            localStorage.removeItem(ADMIN_TOKEN_KEY);
             window.location.href = '/admin/login.html';
             return;
         }
 
-        const data = await respuesta.json();
+        let data = {};
+        try {
+            const ct = respuesta.headers.get('content-type') || '';
+            data = ct.includes('application/json') ? await respuesta.json() : {};
+        } catch (_) {}
 
         if (respuesta.ok) {
             alert(data.mensaje || "✅ Producto subido con éxito");
             form.reset();
         } else {
-            alert("⚠️ Error al subir producto: " + (data.error || "Desconocido"));
+            alert("⚠️ Error al subir producto: " + (data.error || `HTTP ${respuesta.status}`));
         }
     } catch (error) {
         console.error("Error:", error);
@@ -158,6 +171,7 @@ document.addEventListener("click", async (e) => {
     });
     if (res.status === 401) {
         alert('🔒 No autorizado. Ingresá de nuevo.');
+        localStorage.removeItem(ADMIN_TOKEN_KEY);
         window.location.href = '/admin/login.html';
         return;
     }
