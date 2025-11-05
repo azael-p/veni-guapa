@@ -268,23 +268,13 @@ async function sincronizarCategoriasDesdeProductos() {
 }
 
 // --- Cargar productos al iniciar ---
-document.addEventListener("DOMContentLoaded", () => {
-    const filtro = document.getElementById("filtroCategoria");
-    if (filtro) {
-        filtro.addEventListener("change", () => cargarProductos(filtro.value));
-    }
-    cargarProductos();
-
-    document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", async () => {
     const filtro = document.getElementById("filtroCategoria");
     if (filtro) {
         filtro.addEventListener("change", () => cargarProductos(filtro.value));
     }
 
-    await sincronizarCategoriasDesdeProductos();
-    cargarProductos();
-    cargarCategorias();
-    });
-
-    cargarCategorias();
+    await sincronizarCategoriasDesdeProductos(); // genera categorías desde productos existentes si no hay
+    await cargarCategorias(); // muestra categorías en los select
+    cargarProductos(); // muestra productos
 });

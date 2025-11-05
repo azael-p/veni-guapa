@@ -58,13 +58,15 @@
 
     <hr>
 
-    <h2>Gestión de Categorías</h2>
-    <form id="formCategoria">
-        <input type="text" id="nuevaCategoria" placeholder="Nombre de nueva categoría" required>
-        <button type="submit">Agregar categoría</button>
-    </form>
+    <label>Categoría:</label>
+    <select id="categoria" required>
+        <option value="" disabled selected>Seleccionar categoría</option>
+    </select>
 
-    <ul id="listaCategorias"></ul>
+    <label for="filtroCategoria">Filtrar por categoría:</label>
+    <select id="filtroCategoria">
+        <option value="todas">Todas</option>
+    </select>
 
     <div class="productos" id="listaProductos"></div>
 
