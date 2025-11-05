@@ -111,6 +111,29 @@ app.use("/api", (req, res, next) => {
   next();
 });
 
+// Health check rápido (no toca Firebase)
+app.get("/healthz", (req, res) => {
+  res.status(200).json({
+    ok: true,
+    env: NODE_ENV,
+    time: new Date().toISOString(),
+  });
+});
+
+// Health check "profundo" (verifica Firestore y Storage)
+app.get("/healthz/deep", async (req, res) => {
+  try {
+    // Lectura mínima de Firestore
+    await db.collection("productos").limit(1).get();
+    // Listado mínimo de Storage
+    await bucket.getFiles({ maxResults: 1 });
+
+    res.status(200).json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // 📦 Endpoint para subir producto
 app.post("/api/productos", upload.single("imagen"), async (req, res) => {
   try {
