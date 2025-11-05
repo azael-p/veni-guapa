@@ -35,6 +35,11 @@
 
     <label>Imagen:</label>
     <input type="file" id="imagen" accept="image/*" required>
+    
+    <div id="preview-container" style="margin-top:1rem; text-align:center;">
+    <img id="preview-img" src="" alt="Vista previa" 
+        style="max-width: 200px; max-height: 200px; display:none; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.1);" />
+    </div>
 
     <button type="submit">Agregar producto</button>
     </form>
@@ -52,6 +57,26 @@
     </div>
 
     <div class="productos" id="listaProductos"></div>
+
+    <script>
+const inputImagen = document.getElementById("imagen");
+const previewImg = document.getElementById("preview-img");
+
+inputImagen.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            previewImg.src = event.target.result;
+            previewImg.style.display = "inline-block";
+        };
+        reader.readAsDataURL(file);
+    } else {
+        previewImg.src = "";
+        previewImg.style.display = "none";
+    }
+});
+</script>
 
     <script type="module" src="admin.js"></script>
 </body>
