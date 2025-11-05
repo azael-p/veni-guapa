@@ -142,8 +142,12 @@ app.post("/api/productos", upload.single("imagen"), async (req, res) => {
 
     if (!file) return res.status(400).json({ error: "No se subió ninguna imagen" });
 
-    // Subir imagen a Firebase Storage
-    const blob = bucket.file(`productos/${file.originalname}`);
+    // Generar un nombre único para evitar sobrescribir imágenes repetidas
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const extension = file.originalname.split('.').pop();
+    const baseName = file.originalname.replace(/\.[^/.]+$/, "");
+    const filename = `${baseName}-${uniqueSuffix}.${extension}`;
+    const blob = bucket.file(`productos/${filename}`);
     const blobStream = blob.createWriteStream({ metadata: { contentType: file.mimetype } });
 
     blobStream.on("error", (err) => res.status(500).json({ error: err.message }));
