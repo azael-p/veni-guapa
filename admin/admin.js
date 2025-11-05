@@ -119,10 +119,10 @@ function cargarProductos(filtro = "todas") {
 
         const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
-        const productosFiltrados = filtro === "todas"
+        const productosFiltrados = (filtro === "todas" || !filtro)
             ? data
             : data.filter(p => p.categoria === filtro);
-
+            
         const productosPorCategoria = {};
         productosFiltrados.forEach((producto) => {
             if (!productosPorCategoria[producto.categoria]) {
@@ -274,7 +274,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         filtro.addEventListener("change", () => cargarProductos(filtro.value));
     }
 
-    await sincronizarCategoriasDesdeProductos(); // genera categorías desde productos existentes si no hay
-    await cargarCategorias(); // muestra categorías en los select
-    cargarProductos(); // muestra productos
+    // 1️⃣ Primero sincroniza las categorías desde productos existentes
+    await sincronizarCategoriasDesdeProductos();
+
+    // 2️⃣ Luego carga las categorías visibles
+    await cargarCategorias();
+
+    // 3️⃣ Espera un pequeño retraso antes de mostrar productos (para evitar conflicto de snapshot)
+    setTimeout(() => {
+        cargarProductos();
+    }, 500);
 });
