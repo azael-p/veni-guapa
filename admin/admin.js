@@ -11,9 +11,10 @@ const firebaseConfig = {
     measurementId: "G-0YVHTRLK9N"
 };
 
-// 🌐 URL del servidor: local (localhost/127.0.0.1) vs producción
-const isLocal = ["localhost", "127.0.0.1"].includes(window.location.hostname);
-const SERVER_URL = isLocal ? "http://localhost:3000" : "https://api.veniguapa.com";
+// 🌐 URL del servidor: usa el mismo origen en producción (Render) y localhost en desarrollo
+const host = window.location.hostname;
+const isLocal = host === 'localhost' || host === '127.0.0.1';
+const SERVER_URL = isLocal ? 'http://localhost:3000' : window.location.origin;
 const ADMIN_TOKEN_KEY = 'vg_admin_key';
 function adminHeaders() {
     const token = localStorage.getItem(ADMIN_TOKEN_KEY) || '';
