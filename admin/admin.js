@@ -186,6 +186,67 @@ document.addEventListener("click", async (e) => {
     }   
 });
 
+// --- CATEGORÍAS DINÁMICAS ---
+
+import { addDoc, deleteDoc, doc, getDocs, collection as colRef } 
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const categoriaSelect = document.getElementById("categoria");
+const filtroSelect = document.getElementById("filtroCategoria");
+const listaCategorias = document.getElementById("listaCategorias");
+const formCategoria = document.getElementById("formCategoria");
+
+// Cargar categorías existentes
+async function cargarCategorias() {
+    const snapshot = await getDocs(colRef(db, "categorias"));
+    const categorias = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    // Limpiar selects
+    categoriaSelect.innerHTML = "<option value='' disabled selected>Seleccionar categoría</option>";
+    filtroSelect.innerHTML = "<option value='todas'>Todas</option>";
+    listaCategorias.innerHTML = "";
+
+    categorias.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+    categorias.forEach(cat => {
+        const option = document.createElement("option");
+        option.value = cat.nombre;
+        option.textContent = cat.nombre.charAt(0).toUpperCase() + cat.nombre.slice(1);
+        categoriaSelect.appendChild(option);
+
+        const filtroOption = option.cloneNode(true);
+        filtroSelect.appendChild(filtroOption);
+
+        // Mostrar en lista
+        const li = document.createElement("li");
+        li.textContent = cat.nombre;
+        const btn = document.createElement("button");
+        btn.textContent = "Eliminar";
+        btn.style.marginLeft = "10px";
+        btn.addEventListener("click", async () => {
+            if (confirm(`¿Eliminar la categoría "${cat.nombre}"?`)) {
+                await deleteDoc(doc(db, "categorias", cat.id));
+                cargarCategorias();
+            }
+        });
+        li.appendChild(btn);
+        listaCategorias.appendChild(li);
+    });
+}
+
+// Agregar nueva categoría
+formCategoria.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const nombre = document.getElementById("nuevaCategoria").value.trim().toLowerCase();
+    if (!nombre) return alert("Ingresá un nombre de categoría");
+    const snapshot = await getDocs(colRef(db, "categorias"));
+    const existe = snapshot.docs.some(d => d.data().nombre === nombre);
+    if (existe) return alert("Esa categoría ya existe.");
+    await addDoc(colRef(db, "categorias"), { nombre });
+    formCategoria.reset();
+    cargarCategorias();
+});
+
 // --- Cargar productos al iniciar ---
 document.addEventListener("DOMContentLoaded", () => {
     const filtro = document.getElementById("filtroCategoria");
@@ -193,4 +254,5 @@ document.addEventListener("DOMContentLoaded", () => {
         filtro.addEventListener("change", () => cargarProductos(filtro.value));
     }
     cargarProductos();
+    cargarCategorias();
 });
