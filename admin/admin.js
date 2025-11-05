@@ -1,5 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { 
+    getFirestore, collection, onSnapshot,
+    addDoc, deleteDoc, doc, getDocs 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAOUw1KysaVxC2YFyAGUvIgK2dYRZwh-3s",
@@ -188,9 +191,6 @@ document.addEventListener("click", async (e) => {
 
 // --- CATEGORÍAS DINÁMICAS ---
 
-import { addDoc, deleteDoc, doc, getDocs, collection as colRef } 
-from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
 const categoriaSelect = document.getElementById("categoria");
 const filtroSelect = document.getElementById("filtroCategoria");
 const listaCategorias = document.getElementById("listaCategorias");
@@ -198,7 +198,7 @@ const formCategoria = document.getElementById("formCategoria");
 
 // Cargar categorías existentes
 async function cargarCategorias() {
-    const snapshot = await getDocs(colRef(db, "categorias"));
+    const snapshot = await getDocs(collection(db, "categorias"));
     const categorias = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     // Limpiar selects
@@ -239,7 +239,7 @@ formCategoria.addEventListener("submit", async (e) => {
     e.preventDefault();
     const nombre = document.getElementById("nuevaCategoria").value.trim().toLowerCase();
     if (!nombre) return alert("Ingresá un nombre de categoría");
-    const snapshot = await getDocs(colRef(db, "categorias"));
+    const snapshot = await getDocs(collection(db, "categorias"));
     const existe = snapshot.docs.some(d => d.data().nombre === nombre);
     if (existe) return alert("Esa categoría ya existe.");
     await addDoc(colRef(db, "categorias"), { nombre });
@@ -249,7 +249,7 @@ formCategoria.addEventListener("submit", async (e) => {
 
 // --- Sincronizar categorías desde productos (solo si faltan) ---
 async function sincronizarCategoriasDesdeProductos() {
-    const catSnap = await getDocs(colRef(db, "categorias"));
+    const snapshot = await getDocs(collection(db, "categorias"));
     if (!catSnap.empty) return; // si ya existen, no hace nada
 
     const prodSnap = await getDocs(collection(db, "productos"));
@@ -260,28 +260,27 @@ async function sincronizarCategoriasDesdeProductos() {
     });
 
     for (const nombre of categoriasSet) {
-        await addDoc(colRef(db, "categorias"), { nombre });
+        const snapshot = await getDocs(collection(db, "categorias"), { nombre });
         console.log("🆕 Categoría añadida:", nombre);
     }
 
     console.log("✅ Categorías sincronizadas desde productos.");
 }
 
-// --- Cargar productos al iniciar ---
+// --- Cargar todo al iniciar ---
 document.addEventListener("DOMContentLoaded", async () => {
     const filtro = document.getElementById("filtroCategoria");
+
     if (filtro) {
         filtro.addEventListener("change", () => cargarProductos(filtro.value));
     }
 
-    // 1️⃣ Primero sincroniza las categorías desde productos existentes
-    await sincronizarCategoriasDesdeProductos();
-
-    // 2️⃣ Luego carga las categorías visibles
-    await cargarCategorias();
-
-    // 3️⃣ Espera un pequeño retraso antes de mostrar productos (para evitar conflicto de snapshot)
-    setTimeout(() => {
-        cargarProductos();
-    }, 500);
+    try {
+        await sincronizarCategoriasDesdeProductos(); // crea la colección "categorias" si no existe
+        await cargarCategorias(); // carga selectores
+        cargarProductos(); // muestra los productos
+    } catch (err) {
+        console.error("Error al iniciar panel:", err);
+        alert("❌ Error al cargar Firestore. Revisa las reglas o conexión.");
+    }
 });
