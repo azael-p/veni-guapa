@@ -15,11 +15,28 @@ console.log('NODE_ENV =', NODE_ENV);
 const isProd = NODE_ENV === 'production';
 
 // ✅ Inicializar Firebase Admin con tu clave privada
-const serviceAccount = JSON.parse(
-  readFileSync(path.join(__dirname, "serviceAccountKey.json"), "utf8")
-);
-
-console.log('NODE_ENV =', process.env.NODE_ENV); // debería imprimir "production" en Render
+// Lee credenciales desde ENV en producción, o desde archivo en local
+let serviceAccount;
+const saRaw = process.env.FIREBASE_SERVICE_ACCOUNT || "";
+if (saRaw) {
+  try {
+    // puede venir como JSON directo...
+    serviceAccount = JSON.parse(saRaw);
+  } catch {
+    // ...o base64
+    const decoded = Buffer.from(saRaw, "base64").toString("utf8");
+    serviceAccount = JSON.parse(decoded);
+  }
+  // normaliza saltos de línea del private_key cuando viene desde ENV
+  if (serviceAccount.private_key) {
+    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
+  }
+} else {
+  // desarrollo local: usa el archivo
+  serviceAccount = JSON.parse(
+    readFileSync(path.join(__dirname, "serviceAccountKey.json"), "utf8")
+  );
+}
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
