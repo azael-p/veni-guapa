@@ -247,6 +247,26 @@ formCategoria.addEventListener("submit", async (e) => {
     cargarCategorias();
 });
 
+// --- Sincronizar categorías desde productos (solo si faltan) ---
+async function sincronizarCategoriasDesdeProductos() {
+    const catSnap = await getDocs(colRef(db, "categorias"));
+    if (!catSnap.empty) return; // si ya existen, no hace nada
+
+    const prodSnap = await getDocs(collection(db, "productos"));
+    const categoriasSet = new Set();
+    prodSnap.forEach(doc => {
+        const data = doc.data();
+        if (data.categoria) categoriasSet.add(data.categoria.toLowerCase());
+    });
+
+    for (const nombre of categoriasSet) {
+        await addDoc(colRef(db, "categorias"), { nombre });
+        console.log("🆕 Categoría añadida:", nombre);
+    }
+
+    console.log("✅ Categorías sincronizadas desde productos.");
+}
+
 // --- Cargar productos al iniciar ---
 document.addEventListener("DOMContentLoaded", () => {
     const filtro = document.getElementById("filtroCategoria");
@@ -254,5 +274,17 @@ document.addEventListener("DOMContentLoaded", () => {
         filtro.addEventListener("change", () => cargarProductos(filtro.value));
     }
     cargarProductos();
+
+    document.addEventListener("DOMContentLoaded", async () => {
+    const filtro = document.getElementById("filtroCategoria");
+    if (filtro) {
+        filtro.addEventListener("change", () => cargarProductos(filtro.value));
+    }
+
+    await sincronizarCategoriasDesdeProductos();
+    cargarProductos();
+    cargarCategorias();
+    });
+
     cargarCategorias();
 });
