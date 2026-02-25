@@ -1,70 +1,94 @@
-# Vení Guapa 👗
+# Vení Guapa
 
-Este proyecto es una **página web desarrollada con fines personales y educativos**.  
-Tomé como inspiración una tienda real de una amiga para practicar diseño, desarrollo y organización de un sitio web de catálogo simple.
+Aplicación full-stack ligera para catálogos de indumentaria. Combina un sitio público estático (HTML/CSS/JS), un panel privado para alta/baja de productos y un backend Express que expone APIs seguras sobre Firebase (Firestore + Storage).
 
----
+## Stack principal
 
-## ✨ Objetivo del proyecto
+- **Frontend tienda**: HTML5 + CSS3 + JavaScript vanilla con animaciones, carruseles y modal de zoom.
+- **Panel admin**: HTML/CSS + módulo JS (`admin/admin.js`) que usa Firebase Web SDK para listar/filtrar.
+- **Backend**: Node 18, Express 5, Multer, firebase-admin, CORS estricto y subida de archivos a Cloud Storage.
+- **Infra**: Firebase Project (Firestore en modo producción + Storage) y cualquier hosting Node (Render, Railway, VPS, etc.).
 
-Aprender a construir una web funcional y visualmente atractiva usando HTML, CSS y JavaScript puro, sin frameworks ni librerías externas.  
-La idea fue simular una tienda donde los productos estén organizados por categoría, se muestren de forma clara y sin necesidad de carrito ni sistema de compras complejo.
+## Arquitectura
 
----
+```
+/tienda        Sitio público servido como estático desde Express
+/admin         Panel privado + login que guarda la clave en localStorage
+server.js      API REST: productos y categorías + healthchecks
+Firebase       Firestore (colecciones productos/categorias) y Storage/productos
+```
 
-## 🎨 Características
+- El backend sirve `/tienda` en la raíz y `/admin` como subruta. Todas las rutas `/api/*` verifican **origen permitido** y requieren el header `x-admin-key` para operaciones de escritura.
+- Las imágenes se suben vía `multer` a memoria y luego a `gs://<bucket>/productos/...`. Al eliminar un producto también se limpia la imagen asociada.
+- Tanto la tienda (`/tienda/scripts.js`) como el panel (`/admin/admin.js`) escuchan colecciones de Firestore en tiempo real para renderizar los carruseles y la lista administrativa.
 
-- Estructura sencilla basada en HTML5 y CSS3.
-- Galería dinámica por categorías (Remeras, Blazers, Pantalones, Vestidos y Accesorios).
-- Animaciones suaves con CSS para mejorar la experiencia visual.
-- Diseño responsive para que se vea bien en celulares.
-- Contacto directo a través de WhatsApp o Instagram.
-- Todo el contenido se gestiona desde un solo archivo JavaScript.
-- No requiere backend, base de datos ni sistema de login.
+## Requisitos previos
 
----
+1. **Node.js 18+** y `npm`.
+2. **Proyecto Firebase** con:
+   - Firestore Database creada en modo production.
+   - Cloud Storage habilitado (ruta `productos/`).
+   - Cuenta de servicio con rol *Firebase Admin SDK Administrator Service Agent* (descargar JSON).
+3. Clave de administración que se usará en el login del panel y como header `x-admin-key` en las APIs.
 
-## 🧱 Tecnologías utilizadas
+## Configuración local
 
-- HTML5
-- CSS3
-- JavaScript vanilla
+1. Clonar e instalar dependencias:
 
----
+   ```bash
+   git clone https://github.com/azael-p/veni-guapa.git
+   cd veni-guapa
+   npm install
+   ```
 
-## 📂 Estructura
+2. Configurar variables en `/Users/azaelpignanessi/WebstormProjects/Veni-Guapa/.env` (no se versiona):
 
-- `index.html`: estructura principal del sitio.
-- `styles.css`: todos los estilos visuales y responsive.
-- `scripts.js`: lógica para mostrar productos dinámicamente por categoría.
-- `/img`: carpeta con las imágenes de los productos.
-- `.gitignore`: ignora archivos innecesarios como `.DS_Store` y `.idea/`.
+   ```env
+   ADMIN_KEY=super-secreta
+   NODE_ENV=development
+   FIREBASE_STORAGE_BUCKET=tu-bucket.appspot.com
+   # O bien pegar el JSON de la cuenta de servicio en una sola línea/base64
+   FIREBASE_SERVICE_ACCOUNT='{"type":"service_account",...}
+   ```
 
----
+   > Alternativa: dejar `FIREBASE_SERVICE_ACCOUNT` vacío y colocar el archivo descargado como `/Users/azaelpignanessi/WebstormProjects/Veni-Guapa/serviceAccountKey.json`.
 
-## 🚀 Estado actual
+3. Actualizar el snippet `const firebaseConfig = { ... }` en `/Users/azaelpignanessi/WebstormProjects/Veni-Guapa/tienda/scripts.js` y `/Users/azaelpignanessi/WebstormProjects/Veni-Guapa/admin/admin.js` con los valores del proyecto recién creado en Firebase Console.
 
-✅ Web funcional  
-✅ Publicado en GitHub Pages  
-✅ Código limpio y organizado  
-⚙️ En proceso constante de mejora
+4. (Opcional) Ajustar `ALLOWED_ORIGINS` y `ADMIN_KEY` en `/Users/azaelpignanessi/WebstormProjects/Veni-Guapa/server.js` antes de desplegar.
 
----
+## Ejecución
 
-## 🛠️ Próximos pasos
+```bash
+npm start        # inicia Express en http://localhost:3000
+```
 
-- Agregar más productos por categoría
-- Incorporar mejoras visuales (hover, animaciones)
-- Evaluar integración de pagos con links directos
-- Explorar carga desde archivos externos (`.json`)
-- Implementar opciones adicionales para stock o novedades
+- `GET /` muestra la tienda pública.
+- `GET /admin/login.html` pide la clave (`ADMIN_KEY`) y guarda el token en localStorage.
+- `POST /api/productos` permite subir imágenes + datos (protegido por clave y CORS).
+- `DELETE /api/productos/:id` borra Firestore y la imagen en Storage.
+- `GET /api/categorias` autogenera categorías base si la colección está vacía.
 
----
+## Flujo recomendado
 
-## 🙋‍♂️ Sobre mí
+1. Levantar el servidor local (`npm start`).
+2. Entrar a `/admin/login.html`, guardar la clave y usar el formulario para crear productos (nombre, precio, categoría + imagen).
+3. Validar que los carruseles en la tienda muestren los nuevos documentos en tiempo real.
+4. Usar el selector de categorías del panel para filtrar o eliminar registros.
 
-Este proyecto fue desarrollado por como práctica y aprendizaje personal.  
-No representa una tienda real ni tiene intención comercial por el momento.  
-**La idea es seguir actualizándolo y mejorándolo de forma continua.**
+## Deploy sugerido
 
----
+1. Crear un servicio en Render/Railway con Node 18, subir el repo y setear las variables de entorno (`ADMIN_KEY`, `FIREBASE_SERVICE_ACCOUNT`, `FIREBASE_STORAGE_BUCKET`, `NODE_ENV=production`).
+2. Habilitar HTTPS en el dominio y añadirlo al array `ALLOWED_ORIGINS` de `server.js`.
+3. Opcional: servir únicamente la carpeta `/tienda` desde un CDN y dejar solo las APIs en Express.
+
+## Roadmap
+
+- Autenticación real (Firebase Auth o JWT) en lugar del token manual.
+- Generación de URLs firmadas con vencimiento corto.
+- Tests automáticos para endpoints y scripts front.
+- Integración con servicios de mailing o notificaciones cuando se agregan productos.
+
+## Licencia
+
+Proyecto personal de práctica (ISC). Podés utilizarlo como base educativa; recordá reemplazar las claves antes de publicarlo.
