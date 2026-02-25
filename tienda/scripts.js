@@ -2,6 +2,10 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+document.addEventListener("DOMContentLoaded", () => {
+    document.body.classList.add("js-enabled");
+});
+
 // --- Carruseles: navegación con flechas ---
 document.addEventListener("click", (e) => {
     if (e.target.classList.contains("flecha")) {
@@ -45,9 +49,11 @@ async function cargarProductos() {
         galeria.innerHTML = "";
 
         if (querySnapshot.empty) {
+            contenedor.classList.add("sin-items");
             galeria.innerHTML = `<p class="empty-state">Sin productos por ahora.</p>`;
             return;
         }
+        contenedor.classList.remove("sin-items");
 
         let delay = 0;
         querySnapshot.forEach((docSnap) => {
@@ -100,6 +106,9 @@ document.addEventListener("click", (e) => {
 // --- Modal de imágenes ampliadas ---
 const modal = document.createElement("div");
 modal.classList.add("modal");
+modal.setAttribute("role", "dialog");
+modal.setAttribute("aria-modal", "true");
+modal.setAttribute("aria-label", "Imagen ampliada");
 modal.innerHTML = `
 <button class="modal-flecha izquierda" aria-label="Imagen anterior">‹</button>
 <img class="modal-img">
@@ -112,20 +121,34 @@ const modalImg = modal.querySelector(".modal-img");
 let imagenes = [];
 let indiceActual = 0;
 
+function abrirModal() {
+    modal.classList.add("abierta");
+}
+
+function cerrarModal() {
+    modal.classList.remove("abierta");
+}
+
 document.addEventListener("click", (e) => {
     if (e.target.matches(".galeria-imagenes img")) {
         imagenes = [...e.target.closest(".galeria-imagenes").querySelectorAll("img")];
         indiceActual = imagenes.indexOf(e.target);
         mostrarImagen(indiceActual);
-        modal.style.display = "flex";
+        abrirModal();
     } else if (e.target.classList.contains("cerrar")) {
-        modal.style.display = "none";
+        cerrarModal();
     } else if (e.target.classList.contains("modal-flecha")) {
     if (e.target.classList.contains("izquierda")) {
         cambiarImagen(-1);
     } else if (e.target.classList.contains("derecha")) {
         cambiarImagen(1);
     }
+    }
+});
+
+modal.addEventListener("click", (e) => {
+    if (e.target === modal) {
+        cerrarModal();
     }
 });
 
@@ -140,10 +163,10 @@ function cambiarImagen(direccion) {
 }
 
 document.addEventListener("keydown", (e) => {
-    if (modal.style.display === "flex") {
+    if (modal.classList.contains("abierta")) {
         if (e.key === "ArrowLeft") cambiarImagen(-1);
         if (e.key === "ArrowRight") cambiarImagen(1);
-        if (e.key === "Escape") modal.style.display = "none";
+        if (e.key === "Escape") cerrarModal();
     }
 });
 

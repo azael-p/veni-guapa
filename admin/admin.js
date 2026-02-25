@@ -1,14 +1,14 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { 
+import {
     getFirestore, collection, onSnapshot,
-    addDoc, deleteDoc, doc, getDocs 
+    addDoc, deleteDoc, doc, getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAOUw1KysaVxC2YFyAGUvIgK2dYRZwh-3s",
     authDomain: "veni-guapa.firebaseapp.com",
     projectId: "veni-guapa",
-    storageBucket: "veni-guapa.appspot.com",      
+    storageBucket: "veni-guapa.appspot.com",
     messagingSenderId: "961134304703",
     appId: "1:961134304703:web:a3f19b7d9b9d5bac0a950a",
     measurementId: "G-0YVHTRLK9N"
@@ -68,9 +68,9 @@ form.addEventListener("submit", async (e) => {
 
     try {
         const respuesta = await fetch(`${SERVER_URL}/api/productos`, {
-        method: "POST",
-        headers: adminHeaders(),
-        body: formData
+            method: "POST",
+            headers: adminHeaders(),
+            body: formData
         });
 
         if (respuesta.status === 401) {
@@ -84,7 +84,7 @@ form.addEventListener("submit", async (e) => {
         try {
             const ct = respuesta.headers.get('content-type') || '';
             data = ct.includes('application/json') ? await respuesta.json() : {};
-        } catch (_) {}
+        } catch (_) { }
 
         if (respuesta.ok) {
             alert(data.mensaje || "✅ Producto subido con éxito");
@@ -113,52 +113,52 @@ function cargarProductos(filtro = "todas") {
     onSnapshot(
         productosRef,
         (snapshot) => {
-        lista.innerHTML = "";
+            lista.innerHTML = "";
 
-        if (snapshot.empty) {
-            lista.innerHTML = "<p>No hay productos aún.</p>";
-            return;
-        }
-
-        const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-
-        const productosFiltrados = (filtro === "todas" || !filtro)
-            ? data
-            : data.filter(p => p.categoria === filtro);
-            
-        const productosPorCategoria = {};
-        productosFiltrados.forEach((producto) => {
-            if (!productosPorCategoria[producto.categoria]) {
-            productosPorCategoria[producto.categoria] = [];
+            if (snapshot.empty) {
+                lista.innerHTML = "<p>No hay productos aún.</p>";
+                return;
             }
-            productosPorCategoria[producto.categoria].push(producto);
-        });
 
-        for (const categoria in productosPorCategoria) {
-            const categoriaDiv = document.createElement("div");
-            categoriaDiv.className = "categoria-admin";
-            categoriaDiv.innerHTML = `<h2>${categoria.charAt(0).toUpperCase() + categoria.slice(1)}</h2>`;
+            const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
-            productosPorCategoria[categoria].forEach((producto) => {
-            const { id, nombre, precio, imagen } = producto;
-            const div = document.createElement("div");
-            div.className = "producto-item";
-            div.innerHTML = `
+            const productosFiltrados = (filtro === "todas" || !filtro)
+                ? data
+                : data.filter(p => p.categoria === filtro);
+
+            const productosPorCategoria = {};
+            productosFiltrados.forEach((producto) => {
+                if (!productosPorCategoria[producto.categoria]) {
+                    productosPorCategoria[producto.categoria] = [];
+                }
+                productosPorCategoria[producto.categoria].push(producto);
+            });
+
+            for (const categoria in productosPorCategoria) {
+                const categoriaDiv = document.createElement("div");
+                categoriaDiv.className = "categoria-admin";
+                categoriaDiv.innerHTML = `<h2>${categoria.charAt(0).toUpperCase() + categoria.slice(1)}</h2>`;
+
+                productosPorCategoria[categoria].forEach((producto) => {
+                    const { id, nombre, precio, imagen } = producto;
+                    const div = document.createElement("div");
+                    div.className = "producto-item";
+                    div.innerHTML = `
                 <img src="${imagen}" alt="${nombre}">
                 <div>
                 <strong>${nombre}</strong> - ${precio}
                 </div>
                 <button class="eliminar" data-id="${id}">Eliminar</button>
             `;
-            categoriaDiv.appendChild(div);
-            });
+                    categoriaDiv.appendChild(div);
+                });
 
-            lista.appendChild(categoriaDiv);
-        }
+                lista.appendChild(categoriaDiv);
+            }
         },
         (error) => {
-        console.error('Error leyendo Firestore:', error);
-        lista.innerHTML = `<p style="color:#a83939">No se pudo cargar la lista ( ${error.code || ''} ). Revisa la configuración/RULES.</p>`;
+            console.error('Error leyendo Firestore:', error);
+            lista.innerHTML = `<p style="color:#a83939">No se pudo cargar la lista ( ${error.code || ''} ). Revisa la configuración/RULES.</p>`;
         }
     );
 }
@@ -166,27 +166,27 @@ function cargarProductos(filtro = "todas") {
 // --- Eliminar producto ---
 document.addEventListener("click", async (e) => {
     if (e.target.classList.contains("eliminar")) {
-    const id = e.target.dataset.id;
-    if (!confirm("¿Seguro que querés eliminar este producto?")) return;
+        const id = e.target.dataset.id;
+        if (!confirm("¿Seguro que querés eliminar este producto?")) return;
 
-    const res = await fetch(`${SERVER_URL}/api/productos/${id}`, {
-        method: "DELETE",
-        headers: adminHeaders()
-    });
-    if (res.status === 401) {
-        alert('🔒 No autorizado. Ingresá de nuevo.');
-        localStorage.removeItem(ADMIN_TOKEN_KEY);
-        window.location.href = '/admin/login.html';
-        return;
+        const res = await fetch(`${SERVER_URL}/api/productos/${id}`, {
+            method: "DELETE",
+            headers: adminHeaders()
+        });
+        if (res.status === 401) {
+            alert('🔒 No autorizado. Ingresá de nuevo.');
+            localStorage.removeItem(ADMIN_TOKEN_KEY);
+            window.location.href = '/admin/login.html';
+            return;
+        }
+        let data = {};
+        try {
+            data = await res.json();
+        } catch {
+            data = { mensaje: "Producto eliminado correctamente" };
+        }
+        alert(data.mensaje || "Producto eliminado correctamente");
     }
-    let data = {};
-    try {
-        data = await res.json();
-    } catch {
-        data = { mensaje: "Producto eliminado correctamente" };
-    }
-    alert(data.mensaje || "Producto eliminado correctamente");
-    }   
 });
 
 // --- CATEGORÍAS DINÁMICAS ---
@@ -242,7 +242,7 @@ formCategoria.addEventListener("submit", async (e) => {
     const snapshot = await getDocs(collection(db, "categorias"));
     const existe = snapshot.docs.some(d => d.data().nombre === nombre);
     if (existe) return alert("Esa categoría ya existe.");
-    await addDoc(colRef(db, "categorias"), { nombre });
+    await addDoc(collection(db, "categorias"), { nombre });
     formCategoria.reset();
     cargarCategorias();
 });
@@ -250,18 +250,20 @@ formCategoria.addEventListener("submit", async (e) => {
 // --- Sincronizar categorías desde productos (solo si faltan) ---
 async function sincronizarCategoriasDesdeProductos() {
     const snapshot = await getDocs(collection(db, "categorias"));
-    if (!catSnap.empty) return; // si ya existen, no hace nada
+    const categoriasExistentes = new Set(snapshot.docs.map(d => d.data().nombre));
 
     const prodSnap = await getDocs(collection(db, "productos"));
-    const categoriasSet = new Set();
+    const categoriasEnProductos = new Set();
     prodSnap.forEach(doc => {
         const data = doc.data();
-        if (data.categoria) categoriasSet.add(data.categoria.toLowerCase());
+        if (data.categoria) categoriasEnProductos.add(data.categoria.toLowerCase());
     });
 
-    for (const nombre of categoriasSet) {
-        const snapshot = await getDocs(collection(db, "categorias"), { nombre });
-        console.log("🆕 Categoría añadida:", nombre);
+    for (const nombre of categoriasEnProductos) {
+        if (!categoriasExistentes.has(nombre)) {
+            await addDoc(collection(db, "categorias"), { nombre });
+            console.log("🆕 Categoría añadida:", nombre);
+        }
     }
 
     console.log("✅ Categorías sincronizadas desde productos.");
