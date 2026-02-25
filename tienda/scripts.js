@@ -1,6 +1,6 @@
 // --- Conexión con Firebase ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.add("js-enabled");
@@ -21,27 +21,93 @@ document.addEventListener("click", (e) => {
 
 
 const firebaseConfig = {
-    apiKey: "AIzaSyCiZLb3nLawS3sQbvI0iWOi-fSCvnG4nr0",
-    authDomain: "veni-guapa.firebaseapp.com",
-    projectId: "veni-guapa",
-    storageBucket: "veni-guapa.appspot.com",
-    messagingSenderId: "961134304703",
-    appId: "1:961134304703:web:a3f19b7d9b9d5bac0a950a",
+  apiKey: "AIzaSyDjMHUZNLuyANjNgZRDdEYI2vhWw0QJrck",
+  authDomain: "veni-guapa-a6d74.firebaseapp.com",
+  projectId: "veni-guapa-a6d74",
+  storageBucket: "veni-guapa-a6d74.firebasestorage.app",
+  messagingSenderId: "163522581569",
+  appId: "1:163522581569:web:10d92da46d2b17614162c0",
+  measurementId: "G-6PMCYPVTWQ"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// --- Cargar productos desde Firebase ---
-const categorias = ["remeras", "blazers", "pantalones", "vestidos", "accesorios"];
+const CONTACT_WHATSAPP = "59899999999";
+const CONTACT_INSTAGRAM = "https://www.instagram.com/tiendaveniguapa20";
+const DEFAULT_CATEGORIES = ["remeras", "blazers", "pantalones", "vestidos", "accesorios"];
 
+let categorias = [];
+
+function buildWhatsAppLink(nombre, categoria) {
+    const mensaje = `Hola Veni Guapa! Vi ${nombre || "una prenda"} en la categoría ${categoria}. ¿Está disponible?`;
+    return `https://wa.me/${CONTACT_WHATSAPP}?text=${encodeURIComponent(mensaje)}`;
+}
+
+function capitalizar(texto = "") {
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
+function categoriaId(nombre) {
+    return nombre.replace(/\s+/g, "-").toLowerCase();
+}
+
+function renderCategoriasDom(listaCategorias) {
+    const seccion = document.getElementById("categorias");
+    if (!seccion) return;
+    const existentes = seccion.querySelectorAll(".categoria");
+    existentes.forEach((el) => el.remove());
+
+    const fragment = document.createDocumentFragment();
+    listaCategorias.forEach((cat) => {
+        const id = categoriaId(cat);
+        const categoriaDiv = document.createElement("div");
+        categoriaDiv.className = "categoria";
+        categoriaDiv.innerHTML = `
+            <button class="boton-categoria" data-categoria="${id}">${capitalizar(cat)}</button>
+            <div class="carrusel" id="${id}">
+                <button class="flecha izquierda" data-categoria="${id}">‹</button>
+                <div class="galeria-imagenes"></div>
+                <button class="flecha derecha" data-categoria="${id}">›</button>
+            </div>
+        `;
+        fragment.appendChild(categoriaDiv);
+    });
+
+    seccion.appendChild(fragment);
+    resetCarruseles();
+}
+
+function resetCarruseles() {
+    document.querySelectorAll(".carrusel").forEach((c) => c.classList.remove("visible"));
+}
+
+async function obtenerCategorias() {
+    try {
+        const snapshot = await getDocs(collection(db, "categorias"));
+        const catDocs = snapshot.docs.map((doc) => doc.data().nombre).filter(Boolean);
+        if (catDocs.length) return catDocs;
+    } catch (error) {
+        console.error("No se pudieron cargar categorías dinámicas", error);
+    }
+    return DEFAULT_CATEGORIES;
+}
+
+async function inicializarCategorias() {
+    categorias = await obtenerCategorias();
+    renderCategoriasDom(categorias);
+    cargarProductos();
+}
+
+// --- Cargar productos desde Firebase ---
 async function cargarProductos() {
+    if (!categorias.length) return;
     for (const categoria of categorias) {
         const q = query(collection(db, "productos"), where("categoria", "==", categoria));
 
     // Listener en tiempo real por categoría
     onSnapshot(q, (querySnapshot) => {
-        const contenedor = document.getElementById(categoria);
+        const contenedor = document.getElementById(categoriaId(categoria));
         if (!contenedor) return;
 
         const galeria = contenedor.querySelector(".galeria-imagenes");
@@ -58,11 +124,21 @@ async function cargarProductos() {
         let delay = 0;
         querySnapshot.forEach((docSnap) => {
             const data = docSnap.data();
-            const item = document.createElement("div");
+            const item = document.createElement("article");
             item.className = "item-galeria";
+            item.tabIndex = 0;
+            item.setAttribute("role", "button");
+            item.setAttribute("aria-label", `Ver ${data.nombre} en grande`);
             item.innerHTML = `
-            <img loading="lazy" class="lazy-img" src="${data.imagen}" alt="${data.nombre}">
-            <p>${data.nombre} - ${data.precio}</p>
+                <img loading="lazy" class="lazy-img" src="${data.imagen}" alt="${data.nombre}">
+                <div class="item-overlay">
+                    <p class="item-nombre">${data.nombre}</p>
+                    <p class="item-precio">${data.precio}</p>
+                    <div class="item-cta">
+                        <a class="cta-mini whatsapp" href="${buildWhatsAppLink(data.nombre, categoria)}" target="_blank" rel="noopener noreferrer">Consultar</a>
+                        <a class="cta-mini instagram" href="${CONTACT_INSTAGRAM}" target="_blank" rel="noopener noreferrer">DM</a>
+                    </div>
+                </div>
             `;
             galeria.appendChild(item);
 
@@ -80,11 +156,8 @@ async function cargarProductos() {
     }
 }
 
-document.addEventListener("DOMContentLoaded", cargarProductos);
-
-// --- Asegurar que las categorías inicien cerradas ---
 document.addEventListener("DOMContentLoaded", () => {
-    document.querySelectorAll(".carrusel").forEach((c) => c.classList.remove("visible"));
+    inicializarCategorias();
 });
 
 // --- Mostrar solo una categoría a la vez con animación elegante ---
@@ -130,9 +203,19 @@ function cerrarModal() {
 }
 
 document.addEventListener("click", (e) => {
+    let triggerImg = null;
+
     if (e.target.matches(".galeria-imagenes img")) {
-        imagenes = [...e.target.closest(".galeria-imagenes").querySelectorAll("img")];
-        indiceActual = imagenes.indexOf(e.target);
+        triggerImg = e.target;
+    } else if (!e.target.closest(".item-cta")) {
+        const card = e.target.closest(".item-galeria");
+        if (card) triggerImg = card.querySelector("img");
+    }
+
+    if (triggerImg) {
+        const galeria = triggerImg.closest(".galeria-imagenes");
+        imagenes = galeria ? [...galeria.querySelectorAll("img")] : [];
+        indiceActual = imagenes.indexOf(triggerImg);
         mostrarImagen(indiceActual);
         abrirModal();
     } else if (e.target.classList.contains("cerrar")) {
@@ -163,6 +246,20 @@ function cambiarImagen(direccion) {
 }
 
 document.addEventListener("keydown", (e) => {
+    const card = e.target.closest(".item-galeria");
+    if (!e.target.closest(".item-cta") && card && (e.key === "Enter" || e.key === " ")) {
+        e.preventDefault();
+        const img = card.querySelector("img");
+        if (img) {
+            const galeria = card.closest(".galeria-imagenes");
+            imagenes = galeria ? [...galeria.querySelectorAll("img")] : [];
+            indiceActual = imagenes.indexOf(img);
+            mostrarImagen(indiceActual);
+            abrirModal();
+            return;
+        }
+    }
+
     if (modal.classList.contains("abierta")) {
         if (e.key === "ArrowLeft") cambiarImagen(-1);
         if (e.key === "ArrowRight") cambiarImagen(1);
@@ -174,6 +271,11 @@ document.addEventListener("keydown", (e) => {
 document.addEventListener("DOMContentLoaded", () => {
     const header = document.querySelector("header");
     if (!header) return;
+
+    if (window.matchMedia("(max-width: 768px)").matches) {
+        header.classList.remove("compacto");
+        return;
+    }
 
     // Creamos un "sentinela" justo después del header
     const sentinel = document.createElement("div");

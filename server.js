@@ -38,13 +38,25 @@ if (saRaw) {
   );
 }
 
+const derivedBucket =
+  process.env.FIREBASE_STORAGE_BUCKET ||
+  serviceAccount.storageBucket ||
+  serviceAccount.storage_bucket ||
+  (serviceAccount.project_id ? `${serviceAccount.project_id}.appspot.com` : "");
+
+if (!derivedBucket) {
+  throw new Error("No se pudo determinar el storageBucket. Configurá FIREBASE_STORAGE_BUCKET o verificá el serviceAccount.");
+}
+
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  storageBucket: "veni-guapa.firebasestorage.app"
+  storageBucket: derivedBucket
 });
 
 const db = admin.firestore();
 const bucket = admin.storage().bucket();
+
+const DEFAULT_CATEGORIES = ["remeras", "blazers", "pantalones", "vestidos", "accesorios"];
 
 const app = express();
 const ADMIN_KEY = process.env.ADMIN_KEY || "CAMBIA-ESTA-CLAVE";
@@ -134,10 +146,20 @@ app.get("/healthz/deep", async (req, res) => {
 // 📦 Endpoint para subir producto
 app.post("/api/productos", upload.single("imagen"), async (req, res) => {
   try {
-    const { nombre, precio, categoria } = req.body;
+    const nombre = String(req.body?.nombre || "").trim();
+    const precio = String(req.body?.precio || "").trim();
+    const categoria = String(req.body?.categoria || "").trim().toLowerCase();
     const file = req.file;
 
+    if (!nombre || !precio || !categoria) {
+      return res.status(400).json({ error: "Nombre, precio y categoría son obligatorios." });
+    }
+
     if (!file) return res.status(400).json({ error: "No se subió ninguna imagen" });
+
+    if (!file.mimetype.startsWith("image/")) {
+      return res.status(400).json({ error: "Solo se permiten archivos de imagen" });
+    }
 
     // Generar un nombre único para evitar sobrescribir imágenes repetidas
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
@@ -215,6 +237,62 @@ app.delete("/api/productos/:id", async (req, res) => {
   } catch (error) {
     console.error("❌ Error al eliminar producto:", error);
     res.status(500).json({ error: "Error al eliminar el producto", detalle: error.message });
+  }
+});
+
+// 📂 Categorías
+app.get("/api/categorias", async (_req, res) => {
+  try {
+    let snapshot = await db.collection("categorias").orderBy("nombre").get();
+
+    if (snapshot.empty && DEFAULT_CATEGORIES.length) {
+      await Promise.all(
+        DEFAULT_CATEGORIES.map(async (nombre) => {
+          await db.collection("categorias").add({ nombre });
+        })
+      );
+      snapshot = await db.collection("categorias").orderBy("nombre").get();
+    }
+
+    const categorias = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    res.json(categorias);
+  } catch (error) {
+    console.error("Error listando categorías:", error);
+    res.status(500).json({ error: "Error al obtener categorías" });
+  }
+});
+
+app.post("/api/categorias", async (req, res) => {
+  try {
+    const nombre = String(req.body?.nombre || "").trim().toLowerCase();
+    if (!nombre) return res.status(400).json({ error: "Nombre requerido" });
+
+    const existe = await db.collection("categorias").where("nombre", "==", nombre).limit(1).get();
+    if (!existe.empty) {
+      return res.status(409).json({ error: "La categoría ya existe" });
+    }
+
+    const docRef = await db.collection("categorias").add({ nombre });
+    res.status(201).json({ id: docRef.id, nombre });
+  } catch (error) {
+    console.error("Error creando categoría:", error);
+    res.status(500).json({ error: "Error al crear la categoría" });
+  }
+});
+
+app.delete("/api/categorias/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const ref = db.collection("categorias").doc(id);
+    const snap = await ref.get();
+    if (!snap.exists) {
+      return res.status(404).json({ error: "Categoría no encontrada" });
+    }
+    await ref.delete();
+    res.json({ mensaje: "Categoría eliminada" });
+  } catch (error) {
+    console.error("Error eliminando categoría:", error);
+    res.status(500).json({ error: "Error al eliminar la categoría" });
   }
 });
 

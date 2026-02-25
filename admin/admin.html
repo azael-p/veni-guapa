@@ -24,13 +24,9 @@
     <label>Precio:</label>
     <input type="text" id="precio" required>
 
-    <label>Categoría:</label>
+    <label for="categoria">Categoría:</label>
     <select id="categoria" required>
-        <option value="remeras">Remeras</option>
-        <option value="blazers">Blazers</option>
-        <option value="pantalones">Pantalones</option>
-        <option value="vestidos">Vestidos</option>
-        <option value="accesorios">Accesorios</option>
+        <option value="" disabled selected>Seleccionar categoría</option>
     </select>
 
     <label>Imagen:</label>
@@ -44,29 +40,28 @@
     <button type="submit">Agregar producto</button>
     </form>
 
-    <div class="filtro">
+    <section class="panel-categorias">
+        <h2>Gestión de categorías</h2>
+        <div class="panel-categorias__grid">
+            <form id="formCategoria" class="form-categoria">
+                <div class="form-categoria__row">
+                    <input type="text" id="nuevaCategoria" placeholder="Escribí la nueva categoría" required />
+                    <button type="submit">Agregar</button>
+                </div>
+            </form>
+
+            <div class="lista-categorias">
+                <ul id="listaCategorias"></ul>
+            </div>
+        </div>
+    </section>
+
+    <div class="filtro filtro--below">
         <label for="filtroCategoria">Filtrar por categoría:</label>
         <select id="filtroCategoria">
             <option value="todas">Todas</option>
-            <option value="remeras">Remeras</option>
-            <option value="blazers">Blazers</option>
-            <option value="pantalones">Pantalones</option>
-            <option value="vestidos">Vestidos</option>
-            <option value="accesorios">Accesorios</option>
         </select>
     </div>
-
-    <hr>
-
-    <label>Categoría:</label>
-    <select id="categoria" required>
-        <option value="" disabled selected>Seleccionar categoría</option>
-    </select>
-
-    <label for="filtroCategoria">Filtrar por categoría:</label>
-    <select id="filtroCategoria">
-        <option value="todas">Todas</option>
-    </select>
 
     <div class="productos" id="listaProductos"></div>
 

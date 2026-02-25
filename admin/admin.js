@@ -1,17 +1,14 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-    getFirestore, collection, onSnapshot,
-    addDoc, deleteDoc, doc, getDocs
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyAOUw1KysaVxC2YFyAGUvIgK2dYRZwh-3s",
-    authDomain: "veni-guapa.firebaseapp.com",
-    projectId: "veni-guapa",
-    storageBucket: "veni-guapa.appspot.com",
-    messagingSenderId: "961134304703",
-    appId: "1:961134304703:web:a3f19b7d9b9d5bac0a950a",
-    measurementId: "G-0YVHTRLK9N"
+    apiKey: "AIzaSyDjMHUZNLuyANjNgZRDdEYI2vhWw0QJrck",
+    authDomain: "veni-guapa-a6d74.firebaseapp.com",
+    projectId: "veni-guapa-a6d74",
+    storageBucket: "veni-guapa-a6d74.firebasestorage.app",
+    messagingSenderId: "163522581569",
+    appId: "1:163522581569:web:10d92da46d2b17614162c0",
+    measurementId: "G-6PMCYPVTWQ"
 };
 
 // 🌐 URL del servidor: usa el mismo origen en producción (Render) y localhost en desarrollo
@@ -169,23 +166,32 @@ document.addEventListener("click", async (e) => {
         const id = e.target.dataset.id;
         if (!confirm("¿Seguro que querés eliminar este producto?")) return;
 
-        const res = await fetch(`${SERVER_URL}/api/productos/${id}`, {
-            method: "DELETE",
-            headers: adminHeaders()
-        });
-        if (res.status === 401) {
-            alert('🔒 No autorizado. Ingresá de nuevo.');
-            localStorage.removeItem(ADMIN_TOKEN_KEY);
-            window.location.href = '/admin/login.html';
-            return;
-        }
-        let data = {};
         try {
-            data = await res.json();
-        } catch {
-            data = { mensaje: "Producto eliminado correctamente" };
+            const res = await fetch(`${SERVER_URL}/api/productos/${id}`, {
+                method: "DELETE",
+                headers: adminHeaders()
+            });
+
+            if (res.status === 401) {
+                alert('🔒 No autorizado. Ingresá de nuevo.');
+                localStorage.removeItem(ADMIN_TOKEN_KEY);
+                window.location.href = '/admin/login.html';
+                return;
+            }
+
+            const payload = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+                const msg = payload.error || payload.mensaje || `HTTP ${res.status}`;
+                alert(`⚠️ No se pudo eliminar el producto: ${msg}`);
+                return;
+            }
+
+            alert(payload.mensaje || "Producto eliminado correctamente");
+        } catch (err) {
+            console.error("Error eliminando producto:", err);
+            alert("❌ No se pudo conectar con el servidor. Intentá nuevamente.");
         }
-        alert(data.mensaje || "Producto eliminado correctamente");
     }
 });
 
@@ -195,79 +201,113 @@ const categoriaSelect = document.getElementById("categoria");
 const filtroSelect = document.getElementById("filtroCategoria");
 const listaCategorias = document.getElementById("listaCategorias");
 const formCategoria = document.getElementById("formCategoria");
+const inputNuevaCategoria = document.getElementById("nuevaCategoria");
 
-// Cargar categorías existentes
+async function fetchCategoriasApi() {
+    const res = await fetch(`${SERVER_URL}/api/categorias`);
+    if (!res.ok) throw new Error("No se pudo obtener las categorías");
+    return res.json();
+}
+
+function capitalizar(nombre = "") {
+    return nombre.charAt(0).toUpperCase() + nombre.slice(1);
+}
+
 async function cargarCategorias() {
-    const snapshot = await getDocs(collection(db, "categorias"));
-    const categorias = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    if (!categoriaSelect || !filtroSelect || !listaCategorias) return;
 
-    // Limpiar selects
     categoriaSelect.innerHTML = "<option value='' disabled selected>Seleccionar categoría</option>";
     filtroSelect.innerHTML = "<option value='todas'>Todas</option>";
-    listaCategorias.innerHTML = "";
+    listaCategorias.innerHTML = "<li>Cargando categorías...</li>";
 
-    categorias.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    try {
+        const categorias = await fetchCategoriasApi();
+        listaCategorias.innerHTML = "";
 
-    categorias.forEach(cat => {
-        const option = document.createElement("option");
-        option.value = cat.nombre;
-        option.textContent = cat.nombre.charAt(0).toUpperCase() + cat.nombre.slice(1);
-        categoriaSelect.appendChild(option);
+        categorias.forEach(cat => {
+            const option = document.createElement("option");
+            option.value = cat.nombre;
+            option.textContent = capitalizar(cat.nombre);
+            categoriaSelect.appendChild(option);
 
-        const filtroOption = option.cloneNode(true);
-        filtroSelect.appendChild(filtroOption);
+            const filtroOption = option.cloneNode(true);
+            filtroSelect.appendChild(filtroOption);
 
-        // Mostrar en lista
-        const li = document.createElement("li");
-        li.textContent = cat.nombre;
-        const btn = document.createElement("button");
-        btn.textContent = "Eliminar";
-        btn.style.marginLeft = "10px";
-        btn.addEventListener("click", async () => {
-            if (confirm(`¿Eliminar la categoría "${cat.nombre}"?`)) {
-                await deleteDoc(doc(db, "categorias", cat.id));
-                cargarCategorias();
-            }
+            const li = document.createElement("li");
+            li.innerHTML = `
+                <span>${capitalizar(cat.nombre)}</span>
+                <button type="button" class="btn-eliminar-cat" data-id="${cat.id}" data-nombre="${cat.nombre}">Eliminar</button>
+            `;
+            listaCategorias.appendChild(li);
         });
-        li.appendChild(btn);
-        listaCategorias.appendChild(li);
-    });
+
+        if (!categorias.length) {
+            listaCategorias.innerHTML = "<li>No hay categorías aún.</li>";
+        }
+    } catch (error) {
+        console.error(error);
+        listaCategorias.innerHTML = "<li style='color:#c94c4c'>No se pudieron cargar las categorías.</li>";
+    }
 }
 
-// Agregar nueva categoría
-formCategoria.addEventListener("submit", async (e) => {
+formCategoria?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const nombre = document.getElementById("nuevaCategoria").value.trim().toLowerCase();
+    const nombre = (inputNuevaCategoria?.value || "").trim().toLowerCase();
     if (!nombre) return alert("Ingresá un nombre de categoría");
-    const snapshot = await getDocs(collection(db, "categorias"));
-    const existe = snapshot.docs.some(d => d.data().nombre === nombre);
-    if (existe) return alert("Esa categoría ya existe.");
-    await addDoc(collection(db, "categorias"), { nombre });
-    formCategoria.reset();
-    cargarCategorias();
+
+    try {
+        const res = await fetch(`${SERVER_URL}/api/categorias`, {
+            method: "POST",
+            headers: {
+                ...adminHeaders(),
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ nombre })
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+            alert(data.error || "No se pudo crear la categoría");
+            return;
+        }
+
+        formCategoria.reset();
+        await cargarCategorias();
+    } catch (error) {
+        console.error(error);
+        alert("❌ Error al crear la categoría");
+    }
 });
 
-// --- Sincronizar categorías desde productos (solo si faltan) ---
-async function sincronizarCategoriasDesdeProductos() {
-    const snapshot = await getDocs(collection(db, "categorias"));
-    const categoriasExistentes = new Set(snapshot.docs.map(d => d.data().nombre));
+listaCategorias?.addEventListener("click", async (e) => {
+    const btn = e.target.closest(".btn-eliminar-cat");
+    if (!btn) return;
 
-    const prodSnap = await getDocs(collection(db, "productos"));
-    const categoriasEnProductos = new Set();
-    prodSnap.forEach(doc => {
-        const data = doc.data();
-        if (data.categoria) categoriasEnProductos.add(data.categoria.toLowerCase());
-    });
+    const id = btn.dataset.id;
+    const nombre = btn.dataset.nombre || "";
 
-    for (const nombre of categoriasEnProductos) {
-        if (!categoriasExistentes.has(nombre)) {
-            await addDoc(collection(db, "categorias"), { nombre });
-            console.log("🆕 Categoría añadida:", nombre);
+    if (!id) return;
+    if (!confirm(`¿Eliminar la categoría "${capitalizar(nombre)}"?`)) return;
+
+    try {
+        const res = await fetch(`${SERVER_URL}/api/categorias/${id}`, {
+            method: "DELETE",
+            headers: adminHeaders()
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+            alert(data.error || "No se pudo eliminar la categoría");
+            return;
         }
-    }
 
-    console.log("✅ Categorías sincronizadas desde productos.");
-}
+        await cargarCategorias();
+    } catch (error) {
+        console.error(error);
+        alert("❌ Error al eliminar la categoría");
+    }
+});
 
 // --- Cargar todo al iniciar ---
 document.addEventListener("DOMContentLoaded", async () => {
@@ -278,11 +318,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     try {
-        await sincronizarCategoriasDesdeProductos(); // crea la colección "categorias" si no existe
-        await cargarCategorias(); // carga selectores
-        cargarProductos(); // muestra los productos
+        await cargarCategorias();
+        cargarProductos();
     } catch (err) {
         console.error("Error al iniciar panel:", err);
-        alert("❌ Error al cargar Firestore. Revisa las reglas o conexión.");
+        alert("❌ Error al iniciar el panel. Revisá la conexión.");
     }
 });

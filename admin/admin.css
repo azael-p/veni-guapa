@@ -3,6 +3,7 @@ body {
     background-color: #fdf6f2;
     margin: 0;
     padding: 2rem;
+    overflow-x: hidden;
 }
 
 h1 {
@@ -102,4 +103,136 @@ button.eliminar:hover {
     font-weight: bold;
     color: #6b3e2e;
     margin-right: 0.5rem;
+}
+
+.filtro--below {
+    margin-top: 2rem;
+}
+
+.panel-categorias {
+    max-width: 700px;
+    margin: 2rem auto;
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+
+.panel-categorias h2 {
+    margin-top: 0;
+    color: #6b3e2e;
+}
+
+.panel-categorias__grid {
+    display: grid;
+    grid-template-columns: minmax(260px, 360px) 1fr;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.form-categoria__row {
+    display: flex;
+    gap: 0.8rem;
+    margin-top: 0.8rem;
+}
+
+.form-categoria__row input {
+    flex: 1;
+    min-width: 0;
+    padding: 1rem;
+    font-size: 1rem;
+    border-radius: 10px;
+}
+
+.form-categoria__row button {
+    width: auto;
+    flex: 0 0 auto;
+    padding: 0 1.5rem;
+    min-height: 48px;
+}
+
+.lista-categorias ul {
+    list-style: none;
+    padding-left: 0;
+    margin: 1rem 0 0;
+}
+
+.lista-categorias li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0.2rem;
+    border-bottom: 1px solid #f0dacd;
+    text-transform: capitalize;
+}
+
+.lista-categorias {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #f4d8ca;
+    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    background: #fff9f6;
+}
+
+.btn-eliminar-cat {
+    width: auto;
+    padding: 0.3rem 0.8rem;
+    background-color: #c94c4c !important;
+    border: none;
+    margin-left: 0.8rem;
+}
+
+@media (max-width: 900px) {
+    .panel-categorias__grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .panel-categorias__grid > * {
+        width: 100%;
+    }
+
+    .lista-categorias {
+        margin-top: 0.5rem;
+    }
+}
+
+@media (max-width: 600px) {
+    body {
+        padding: 1.5rem 1rem;
+    }
+
+    form,
+    .filtro,
+    .panel-categorias,
+    .productos {
+        margin: 1.2rem auto;
+        padding: 1.2rem;
+        width: 100%;
+    }
+
+    .panel-categorias__grid {
+        grid-template-columns: 1fr;
+    }
+
+    .lista-categorias {
+        max-height: none;
+        padding: 0.5rem 0.8rem;
+    }
+
+    .lista-categorias li {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.4rem;
+    }
+
+    .btn-eliminar-cat {
+        margin-left: 0;
+        align-self: flex-start;
+    }
+
+    .form-categoria__row {
+        flex-direction: column;
+    }
 }
