@@ -56,9 +56,6 @@ const ALLOWED_ORIGINS = new Set([
   "http://127.0.0.1:5500",
   "https://veni-guapa.onrender.com",
   "https://www.veni-guapa.onrender.com",
-  // Agregá aquí tus dominios de producción cuando publiques, por ejemplo:
-  // "https://veniguapa.com",
-  // "https://www.veniguapa.com"
 ]);
 
 app.use(
