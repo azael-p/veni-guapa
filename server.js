@@ -103,7 +103,14 @@ const ADMIN_KEY = process.env.ADMIN_KEY || "CAMBIA-ESTA-CLAVE";
 // 🔒 CORS restringido a orígenes permitidos
 const ALLOWED_ORIGINS = new Set([
   "http://localhost:3000",
-  "https://tienda-veni-guapa.onrender.com/",
+  "http://127.0.0.1:3000",
+  "https://tienda-veni-guapa.onrender.com",
+]);
+
+const ALLOWED_HOSTS = new Set([
+  "localhost:3000",
+  "127.0.0.1:3000",
+  "tienda-veni-guapa.onrender.com",
 ]);
 
 app.use(
@@ -135,6 +142,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 app.use("/api", (req, res, next) => {
   const origin = req.headers.origin || "";
   const referer = req.headers.referer || "";
+  const hostHeader = req.headers.host || "";
   let permitido = false;
 
   if (origin && ALLOWED_ORIGINS.has(origin)) permitido = true;
@@ -143,6 +151,9 @@ app.use("/api", (req, res, next) => {
       const refOrigin = new URL(referer).origin;
       if (ALLOWED_ORIGINS.has(refOrigin)) permitido = true;
     } catch (_) { /* referer malformado: ignorar */ }
+  }
+  if (!permitido && hostHeader && ALLOWED_HOSTS.has(hostHeader)) {
+    permitido = true;
   }
 
   if (!permitido) return res.status(403).json({ error: "Origen no permitido" });
