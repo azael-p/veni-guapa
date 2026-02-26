@@ -151,6 +151,7 @@ async function cargarProductos() {
         querySnapshot.forEach((docSnap) => {
             const data = docSnap.data();
             const precioVisible = formatPrice(data.precio);
+            const categoriaLabel = capitalizar(categoria);
             const item = document.createElement("article");
             item.className = "item-galeria";
             item.tabIndex = 0;
@@ -162,7 +163,7 @@ async function cargarProductos() {
                     <p class="item-nombre">${data.nombre}</p>
                     <p class="item-precio">${precioVisible}</p>
                     <div class="item-cta">
-                        <a class="cta-mini whatsapp" href="${buildWhatsAppLink(data.nombre, capitalizar(categoria), precioVisible)}" target="_blank" rel="noopener noreferrer">Consultar</a>
+                        <a class="cta-mini whatsapp" href="${buildWhatsAppLink(data.nombre, categoriaLabel, precioVisible)}" target="_blank" rel="noopener noreferrer">Consultar</a>
                     </div>
                 </div>
             `;
@@ -171,6 +172,9 @@ async function cargarProductos() {
             const img = item.querySelector("img");
             img.style.animationDelay = `${delay}s`;
             delay += 0.1;
+            img.dataset.nombre = data.nombre;
+            img.dataset.precio = precioVisible;
+            img.dataset.categoria = categoriaLabel;
 
             if (img.complete) {
                 img.classList.add("loaded");
@@ -184,32 +188,6 @@ async function cargarProductos() {
 
 document.addEventListener("DOMContentLoaded", () => {
     inicializarCategorias();
-});
-
-document.addEventListener("click", (e) => {
-    const igBtn = e.target.closest(".cta-mini.instagram");
-    if (!igBtn) return;
-    const encoded = igBtn.dataset.message || "";
-    if (!encoded) return;
-    const message = decodeURIComponent(encoded);
-    const profileUrl = igBtn.dataset.profile || CONTACT_INSTAGRAM_PROFILE;
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(message).then(() => {
-            const original = igBtn.dataset.originalText || igBtn.textContent;
-            igBtn.dataset.originalText = original;
-            igBtn.textContent = "Mensaje copiado";
-            setTimeout(() => {
-                igBtn.textContent = igBtn.dataset.originalText || original;
-            }, 1500);
-        }).catch(() => {});
-    }
-
-    if (!isMobile && profileUrl) {
-        e.preventDefault();
-        window.open(profileUrl, "_blank", "noopener");
-    }
 });
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -274,8 +252,11 @@ modal.innerHTML = `
 <div class="modal-body">
     <img class="modal-img" alt="">
     <div class="modal-info">
-        <span class="modal-counter"></span>
-        <span class="modal-name"></span>
+        <div class="modal-text">
+            <span class="modal-counter"></span>
+            <span class="modal-name"></span>
+        </div>
+        <a class="modal-cta whatsapp" target="_blank" rel="noopener noreferrer">Consultar por WhatsApp</a>
     </div>
 </div>
 <button class="modal-flecha derecha" aria-label="Imagen siguiente">›</button>
@@ -286,6 +267,7 @@ document.body.appendChild(modal);
 const modalImg = modal.querySelector(".modal-img");
 const modalCounter = modal.querySelector(".modal-counter");
 const modalName = modal.querySelector(".modal-name");
+const modalWhatsapp = modal.querySelector(".modal-cta.whatsapp");
 let imagenes = [];
 let indiceActual = 0;
 let startX = 0;
@@ -357,11 +339,19 @@ modal.addEventListener("touchend", () => {
 
 function actualizarMeta(indice) {
     if (!imagenes[indice]) return;
+    const img = imagenes[indice];
+    const nombre = img?.dataset?.nombre || img?.getAttribute("alt") || "Producto";
+    const categoria = img?.dataset?.categoria || "";
+    const precio = img?.dataset?.precio || "";
+
     if (modalCounter) {
         modalCounter.textContent = `${indice + 1}/${imagenes.length}`;
     }
     if (modalName) {
-        modalName.textContent = imagenes[indice].getAttribute("alt") || "Producto";
+        modalName.textContent = nombre;
+    }
+    if (modalWhatsapp) {
+        modalWhatsapp.href = buildWhatsAppLink(nombre, categoria, precio);
     }
 }
 
