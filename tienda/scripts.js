@@ -33,10 +33,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const CONTACT_WHATSAPP = "59899999999";
-const IG_USERNAME = "tiendaveniguapa20";
-const CONTACT_INSTAGRAM_PROFILE = `https://www.instagram.com/${IG_USERNAME}`;
-const CONTACT_INSTAGRAM_DM = `https://ig.me/m/${IG_USERNAME}`;
+const CONTACT_WHATSAPP = "59898238313";
 const DEFAULT_CATEGORIES = ["remeras", "blazers", "pantalones", "vestidos", "accesorios"];
 const currencyFormatter = new Intl.NumberFormat("es-AR", {
     style: "currency",
@@ -59,15 +56,6 @@ function buildProductMessage(nombre, categoria, precio = "") {
 function buildWhatsAppLink(nombre, categoria, precio) {
     const mensaje = buildProductMessage(nombre, categoria, precio);
     return `https://wa.me/${CONTACT_WHATSAPP}?text=${encodeURIComponent(mensaje)}`;
-}
-
-function buildInstagramLink(nombre, categoria, precio) {
-    const mensaje = buildProductMessage(nombre, categoria, precio);
-    return {
-        href: `${CONTACT_INSTAGRAM_DM}?text=${encodeURIComponent(mensaje)}`,
-        message: mensaje,
-        profile: CONTACT_INSTAGRAM_PROFILE
-    };
 }
 
 function capitalizar(texto = "") {
@@ -168,7 +156,6 @@ async function cargarProductos() {
             item.tabIndex = 0;
             item.setAttribute("role", "button");
             item.setAttribute("aria-label", `Ver ${data.nombre} en grande`);
-            const igLink = buildInstagramLink(data.nombre, capitalizar(categoria), precioVisible);
             item.innerHTML = `
                 <img loading="lazy" class="lazy-img" src="${data.imagen}" alt="${data.nombre}">
                 <div class="item-overlay">
@@ -176,7 +163,6 @@ async function cargarProductos() {
                     <p class="item-precio">${precioVisible}</p>
                     <div class="item-cta">
                         <a class="cta-mini whatsapp" href="${buildWhatsAppLink(data.nombre, capitalizar(categoria), precioVisible)}" target="_blank" rel="noopener noreferrer">Consultar</a>
-                        <a class="cta-mini instagram" data-message="${encodeURIComponent(igLink.message)}" data-profile="${igLink.profile}" href="${igLink.href}" target="_blank" rel="noopener noreferrer">DM</a>
                     </div>
                 </div>
             `;

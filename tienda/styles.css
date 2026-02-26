@@ -503,10 +503,6 @@ section {
   background: rgba(37, 211, 102, 0.8);
 }
 
-.cta-mini.instagram {
-  background: rgba(214, 41, 118, 0.8);
-}
-
 .cta-mini:hover {
   background: rgba(255, 255, 255, 0.2);
 }
