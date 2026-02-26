@@ -103,11 +103,7 @@ const ADMIN_KEY = process.env.ADMIN_KEY || "CAMBIA-ESTA-CLAVE";
 // 🔒 CORS restringido a orígenes permitidos
 const ALLOWED_ORIGINS = new Set([
   "http://localhost:3000",
-  "http://127.0.0.1:3000",
-  "http://localhost:5500",
-  "http://127.0.0.1:5500",
-  "https://veni-guapa.onrender.com",
-  "https://www.veni-guapa.onrender.com",
+  "https://tienda-veni-guapa.onrender.com",
 ]);
 
 app.use(
