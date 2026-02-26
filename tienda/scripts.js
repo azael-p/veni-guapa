@@ -255,6 +255,7 @@ modal.innerHTML = `
         <div class="modal-text">
             <span class="modal-counter"></span>
             <span class="modal-name"></span>
+            <span class="modal-price"></span>
         </div>
         <a class="modal-cta whatsapp" target="_blank" rel="noopener noreferrer">Consultar por WhatsApp</a>
     </div>
@@ -267,6 +268,7 @@ document.body.appendChild(modal);
 const modalImg = modal.querySelector(".modal-img");
 const modalCounter = modal.querySelector(".modal-counter");
 const modalName = modal.querySelector(".modal-name");
+const modalPrice = modal.querySelector(".modal-price");
 const modalWhatsapp = modal.querySelector(".modal-cta.whatsapp");
 let imagenes = [];
 let indiceActual = 0;
@@ -349,6 +351,9 @@ function actualizarMeta(indice) {
     }
     if (modalName) {
         modalName.textContent = nombre;
+    }
+    if (modalPrice) {
+        modalPrice.textContent = precio || "";
     }
     if (modalWhatsapp) {
         modalWhatsapp.href = buildWhatsAppLink(nombre, categoria, precio);

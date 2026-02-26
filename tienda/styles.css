@@ -647,6 +647,16 @@ footer p {
   display: flex;
   gap: 0.4rem;
   align-items: center;
+  flex-wrap: wrap;
+}
+
+.modal-name {
+  font-weight: 700;
+}
+
+.modal-price {
+  opacity: 0.9;
+  font-weight: 600;
 }
 
 .modal-cta {
