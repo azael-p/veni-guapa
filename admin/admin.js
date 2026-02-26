@@ -16,6 +16,7 @@ const host = window.location.hostname;
 const isLocal = host === 'localhost' || host === '127.0.0.1';
 const SERVER_URL = isLocal ? 'http://localhost:3000' : window.location.origin;
 const ADMIN_TOKEN_KEY = 'vg_admin_key';
+let categoriasDisponibles = [];
 function adminHeaders() {
     const token = localStorage.getItem(ADMIN_TOKEN_KEY) || '';
     const base = { 'Accept': 'application/json' };
@@ -101,64 +102,276 @@ if (!firebaseConfig || String(firebaseConfig.apiKey || '').includes('TU_')) {
 }
 
 const form = document.getElementById("formProducto");
+const inputImagen = document.getElementById("imagen");
+const batchList = document.getElementById("batchList");
+const submitBtn = form?.querySelector('button[type="submit"]');
+const batchFiles = new Map();
+let batchCounter = 0;
+const seleccionContador = document.getElementById("seleccionContador");
+const btnSeleccionarTodo = document.getElementById("btnSeleccionarTodo");
+const btnLimpiarSeleccion = document.getElementById("btnLimpiarSeleccion");
+const btnEliminarSeleccion = document.getElementById("btnEliminarSeleccion");
+const selectedProducts = new Set();
+let filtroActual = "todas";
+if (batchList) {
+    batchList.innerHTML = `<p class="batch-placeholder">Seleccioná una o más imágenes para comenzar.</p>`;
+}
+
+function productosSeleccionadosTexto() {
+    const total = selectedProducts.size;
+    return total === 1 ? "1 producto seleccionado" : `${total} productos seleccionados`;
+}
+
+function updateSeleccionUI() {
+    if (seleccionContador) {
+        seleccionContador.textContent = productosSeleccionadosTexto();
+    }
+    if (btnEliminarSeleccion) {
+        btnEliminarSeleccion.disabled = selectedProducts.size === 0;
+    }
+}
+
+function clearSeleccion(keepCheckboxes = false) {
+    selectedProducts.clear();
+    if (!keepCheckboxes) {
+        document.querySelectorAll(".producto-select").forEach((checkbox) => {
+            checkbox.checked = false;
+        });
+    }
+    updateSeleccionUI();
+}
+
+updateSeleccionUI();
 
 // Tomar la instancia de Firestore expuesta por el script de módulo
 if (!db) {
     console.error('Firestore (db) no está disponible. Verifica la configuración de Firebase arriba.');
 }
 
+function renderPlaceholderBatch() {
+    if (!batchList) return;
+    batchList.innerHTML = `<p class="batch-placeholder">Seleccioná una o más imágenes para comenzar.</p>`;
+}
+
+function crearSelectCategorias(selected = "") {
+    const select = document.createElement("select");
+    select.required = true;
+    select.className = "batch-categoria";
+    const placeholderOption = document.createElement("option");
+    placeholderOption.value = "";
+    placeholderOption.disabled = true;
+    placeholderOption.textContent = "Seleccioná categoría";
+    select.appendChild(placeholderOption);
+
+    categoriasDisponibles.forEach((nombre) => {
+        const opt = document.createElement("option");
+        opt.value = nombre;
+        opt.textContent = capitalizar(nombre);
+        select.appendChild(opt);
+    });
+
+    if (selected && categoriasDisponibles.includes(selected)) {
+        select.value = selected;
+    } else if (categoriasDisponibles.length) {
+        select.value = categoriasDisponibles[0];
+    }
+    return select;
+}
+
+function actualizarBatchCategorias() {
+    const selects = batchList?.querySelectorAll(".batch-categoria") || [];
+    selects.forEach((select) => {
+        const seleccionado = select.value;
+        const nuevo = crearSelectCategorias(seleccionado);
+        select.innerHTML = nuevo.innerHTML;
+        if (seleccionado && categoriasDisponibles.includes(seleccionado)) {
+            select.value = seleccionado;
+        } else if (categoriasDisponibles.length) {
+            select.value = categoriasDisponibles[0];
+        }
+    });
+}
+
+function agregarFilaBatch(file, defaultCategoria = "") {
+    if (!batchList) return;
+    const id = `batch-${batchCounter++}`;
+    batchFiles.set(id, file);
+
+    const item = document.createElement("div");
+    item.className = "batch-item";
+    item.dataset.id = id;
+
+    const preview = document.createElement("img");
+    preview.alt = file.name;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        preview.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+
+    const fields = document.createElement("div");
+    fields.className = "batch-item__fields";
+
+    const nombreInput = document.createElement("input");
+    nombreInput.type = "text";
+    nombreInput.placeholder = "Nombre";
+    nombreInput.className = "batch-nombre";
+    nombreInput.required = true;
+
+    const precioInput = document.createElement("input");
+    precioInput.type = "text";
+    precioInput.placeholder = "Precio";
+    precioInput.className = "batch-precio";
+    precioInput.required = true;
+
+    const categoriaSelectClonado = crearSelectCategorias(defaultCategoria);
+
+    fields.append(nombreInput, precioInput, categoriaSelectClonado);
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "batch-remove";
+    removeBtn.innerHTML = "&times;";
+    removeBtn.addEventListener("click", () => eliminarFilaBatch(id));
+
+    item.append(preview, fields, removeBtn);
+    batchList.appendChild(item);
+}
+
+function eliminarFilaBatch(id) {
+    batchFiles.delete(id);
+    const fila = batchList?.querySelector(`.batch-item[data-id="${id}"]`);
+    fila?.remove();
+    if (!batchList?.querySelector(".batch-item")) {
+        renderPlaceholderBatch();
+    }
+}
+
+inputImagen?.addEventListener("change", (e) => {
+    batchFiles.clear();
+    batchList.innerHTML = "";
+    const files = Array.from(e.target.files || []);
+    if (!files.length) {
+        renderPlaceholderBatch();
+        return;
+    }
+    const defaultCat = categoriaSelect?.value || "";
+    files.forEach((file) => agregarFilaBatch(file, defaultCat));
+});
+
+async function subirBatchProductos(items) {
+    let exitos = 0;
+    let fallos = 0;
+
+    for (const item of items) {
+        const id = item.dataset.id;
+        const file = batchFiles.get(id);
+        const nombre = item.querySelector(".batch-nombre")?.value.trim();
+        const precio = item.querySelector(".batch-precio")?.value.trim();
+        const categoria = item.querySelector(".batch-categoria")?.value;
+
+        if (!file || !nombre || !precio || !categoria) {
+            showToast("Completá todos los campos antes de subir.", "warning");
+            return { exitos, fallos, detenido: true };
+        }
+
+        const formData = new FormData();
+        formData.append("nombre", nombre);
+        formData.append("precio", precio);
+        formData.append("categoria", categoria);
+        formData.append("imagen", file);
+
+        try {
+            const respuesta = await fetch(`${SERVER_URL}/api/productos`, {
+                method: "POST",
+                headers: adminHeaders(),
+                body: formData
+            });
+
+            if (respuesta.status === 401) {
+                showToast('🔒 No autorizado. Ingresá de nuevo.', "error");
+                localStorage.removeItem(ADMIN_TOKEN_KEY);
+                window.location.href = '/admin/login.html';
+                return { exitos, fallos, detenido: true };
+            }
+
+            let data = {};
+            try {
+                const ct = respuesta.headers.get('content-type') || '';
+                data = ct.includes('application/json') ? await respuesta.json() : {};
+            } catch (_) { }
+
+            if (respuesta.ok) {
+                exitos += 1;
+                batchFiles.delete(id);
+                item.remove();
+            } else {
+                fallos += 1;
+                showToast(`⚠️ ${data.error || `Error al subir ${nombre}`}`, "warning");
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            fallos += 1;
+            showToast("❌ No se pudo conectar con el servidor", "error");
+        }
+    }
+
+    if (!batchList?.querySelector(".batch-item")) {
+        renderPlaceholderBatch();
+    }
+
+    return { exitos, fallos, detenido: false };
+}
+
 form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (!batchList) return;
 
-    const nombre = document.getElementById("nombre").value;
-    const precio = document.getElementById("precio").value;
-    const categoria = document.getElementById("categoria").value;
-    const imagen = document.getElementById("imagen").files[0];
-
-    if (!imagen) {
-        showToast("Seleccioná una imagen antes de continuar", "warning");
+    const items = Array.from(batchList.querySelectorAll(".batch-item"));
+    if (!items.length) {
+        showToast("Seleccioná al menos una imagen", "warning");
         return;
     }
 
-    const formData = new FormData();
-    formData.append("nombre", nombre);
-    formData.append("precio", precio);
-    formData.append("categoria", categoria);
-    formData.append("imagen", imagen);
-
-    try {
-        const respuesta = await fetch(`${SERVER_URL}/api/productos`, {
-            method: "POST",
-            headers: adminHeaders(),
-            body: formData
-        });
-
-        if (respuesta.status === 401) {
-            showToast('🔒 No autorizado. Ingresá de nuevo.', "error");
-            localStorage.removeItem(ADMIN_TOKEN_KEY);
-            window.location.href = '/admin/login.html';
-            return;
-        }
-
-        let data = {};
-        try {
-            const ct = respuesta.headers.get('content-type') || '';
-            data = ct.includes('application/json') ? await respuesta.json() : {};
-        } catch (_) { }
-
-        if (respuesta.ok) {
-            showToast(data.mensaje || "✅ Producto subido con éxito", "success");
-            form.reset();
-        } else {
-            showToast("⚠️ Error al subir producto: " + (data.error || `HTTP ${respuesta.status}`), "error");
-        }
-    } catch (error) {
-        console.error("Error:", error);
-        showToast("❌ No se pudo conectar con el servidor", "error");
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Subiendo...";
     }
+
+    const resultado = await subirBatchProductos(items);
+
+    if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Cargar productos";
+    }
+
+    if (resultado.detenido) return;
+
+    if (resultado.exitos && !resultado.fallos) {
+        showToast(`✅ ${resultado.exitos} producto(s) subidos`, "success");
+        form.reset();
+        if (inputImagen) inputImagen.value = "";
+    } else if (resultado.exitos && resultado.fallos) {
+        showToast(`⚠️ ${resultado.exitos} cargados, ${resultado.fallos} con error`, "warning");
+    } else {
+        showToast("❌ No se pudieron subir los productos", "error");
+    }
+
+    const filtroSelectActual = document.getElementById("filtroCategoria");
+    if (filtroSelectActual) {
+        filtroActual = filtroSelectActual.value || "todas";
+    }
+    cargarProductos(filtroActual);
 });
 
-function cargarProductos(filtro = "todas") {
+function pluralizarProductos(total) {
+    return total === 1 ? "1 producto" : `${total} productos`;
+}
+
+function cargarProductos(filtro = filtroActual) {
+    filtroActual = filtro;
+    selectedProducts.clear();
+    updateSeleccionUI();
     const lista = document.getElementById("listaProductos");
     lista.innerHTML = "<p>Cargando...</p>";
 
@@ -197,19 +410,30 @@ function cargarProductos(filtro = "todas") {
             for (const categoria in productosPorCategoria) {
                 const categoriaDiv = document.createElement("div");
                 categoriaDiv.className = "categoria-admin";
-                categoriaDiv.innerHTML = `<h2>${categoria.charAt(0).toUpperCase() + categoria.slice(1)}</h2>`;
+                const totalCategoria = productosPorCategoria[categoria].length;
+                categoriaDiv.innerHTML = `
+                    <div class="categoria-header">
+                        <h2>${categoria.charAt(0).toUpperCase() + categoria.slice(1)}</h2>
+                        <p class="categoria-count">${pluralizarProductos(totalCategoria)}</p>
+                    </div>
+                `;
 
                 productosPorCategoria[categoria].forEach((producto) => {
                     const { id, nombre, precio, imagen } = producto;
                     const div = document.createElement("div");
                     div.className = "producto-item";
+                    const categoriaLabel = producto.categoria || categoria;
+                    const checkedAttr = selectedProducts.has(id) ? "checked" : "";
                     div.innerHTML = `
-                <img src="${imagen}" alt="${nombre}">
-                <div>
-                <strong>${nombre}</strong> - ${precio}
-                </div>
-                <button class="eliminar" data-id="${id}">Eliminar</button>
-            `;
+                        <input type="checkbox" class="producto-select" value="${id}" ${checkedAttr}>
+                        <img src="${imagen}" alt="${nombre}">
+                        <div class="producto-info">
+                            <strong>${nombre}</strong>
+                            <span>${precio}</span>
+                            <span class="producto-meta">${capitalizar(categoriaLabel || "")}</span>
+                        </div>
+                        <button class="eliminar" data-id="${id}">Eliminar</button>
+                    `;
                     categoriaDiv.appendChild(div);
                 });
 
@@ -233,32 +457,87 @@ document.addEventListener("click", async (e) => {
         });
         if (!confirmado) return;
 
-        try {
-            const res = await fetch(`${SERVER_URL}/api/productos/${id}`, {
-                method: "DELETE",
-                headers: adminHeaders()
-            });
+        const resultado = await eliminarProductoApi(id);
+        if (resultado?.status === "unauth") return;
 
-            if (res.status === 401) {
-                showToast('🔒 No autorizado. Ingresá de nuevo.', "error");
-                localStorage.removeItem(ADMIN_TOKEN_KEY);
-                window.location.href = '/admin/login.html';
-                return;
-            }
-
-            const payload = await res.json().catch(() => ({}));
-
-            if (!res.ok) {
-                const msg = payload.error || payload.mensaje || `HTTP ${res.status}`;
-                showToast(`⚠️ No se pudo eliminar el producto: ${msg}`, "warning");
-                return;
-            }
-
-            showToast(payload.mensaje || "Producto eliminado correctamente", "success");
-        } catch (err) {
-            console.error("Error eliminando producto:", err);
-            showToast("❌ No se pudo conectar con el servidor. Intentá nuevamente.", "error");
+        if (resultado.ok) {
+            showToast(resultado.mensaje, "success");
+            selectedProducts.delete(id);
+            updateSeleccionUI();
+            cargarProductos(filtroActual);
+        } else {
+            showToast(resultado.mensaje || "⚠️ No se pudo eliminar el producto", "warning");
         }
+    }
+});
+
+document.addEventListener("change", (e) => {
+    if (e.target.classList.contains("producto-select")) {
+        const id = e.target.value;
+        if (!id) return;
+        if (e.target.checked) {
+            selectedProducts.add(id);
+        } else {
+            selectedProducts.delete(id);
+        }
+        updateSeleccionUI();
+    }
+});
+
+btnSeleccionarTodo?.addEventListener("click", () => {
+    const checkboxes = document.querySelectorAll(".producto-select");
+    if (!checkboxes.length) return;
+    const todosSeleccionados = Array.from(checkboxes).every((cb) => cb.checked);
+    checkboxes.forEach((cb) => {
+        cb.checked = !todosSeleccionados;
+        const id = cb.value;
+        if (!id) return;
+        if (cb.checked) {
+            selectedProducts.add(id);
+        } else {
+            selectedProducts.delete(id);
+        }
+    });
+    updateSeleccionUI();
+});
+
+btnLimpiarSeleccion?.addEventListener("click", () => {
+    clearSeleccion();
+});
+
+btnEliminarSeleccion?.addEventListener("click", async () => {
+    const ids = Array.from(selectedProducts);
+    if (!ids.length) return;
+
+    const confirmado = await showConfirm(
+        `¿Eliminar ${ids.length} producto(s) seleccionados?`,
+        { confirmText: "Eliminar", cancelText: "Cancelar" }
+    );
+    if (!confirmado) return;
+
+    let exitos = 0;
+    let fallos = 0;
+
+    for (const id of ids) {
+        const resultado = await eliminarProductoApi(id);
+        if (resultado?.status === "unauth") return;
+        if (resultado.ok) {
+            exitos += 1;
+            selectedProducts.delete(id);
+        } else {
+            fallos += 1;
+        }
+    }
+
+    updateSeleccionUI();
+    cargarProductos(filtroActual);
+
+    if (exitos && !fallos) {
+        showToast(`✅ ${exitos} producto(s) eliminados`, "success");
+    } else if (exitos && fallos) {
+        showToast(`⚠️ ${exitos} eliminados, ${fallos} con error`, "warning");
+    } else {
+        showToast("❌ No se pudieron eliminar los productos", "error");
     }
 });
 
@@ -290,6 +569,8 @@ async function cargarCategorias() {
     try {
         const categorias = await fetchCategoriasApi();
         listaCategorias.innerHTML = "";
+        categoriasDisponibles = categorias.map(cat => cat.nombre);
+        actualizarBatchCategorias();
 
         categorias.forEach(cat => {
             const option = document.createElement("option");
@@ -417,12 +698,42 @@ listaCategorias?.addEventListener("click", async (e) => {
     }
 });
 
+async function eliminarProductoApi(id) {
+    try {
+        const res = await fetch(`${SERVER_URL}/api/productos/${id}`, {
+            method: "DELETE",
+            headers: adminHeaders()
+        });
+
+        if (res.status === 401) {
+            showToast('🔒 No autorizado. Ingresá de nuevo.', "error");
+            localStorage.removeItem(ADMIN_TOKEN_KEY);
+            window.location.href = '/admin/login.html';
+            return { status: "unauth" };
+        }
+
+        const payload = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+            return { ok: false, mensaje: payload.error || payload.mensaje || `HTTP ${res.status}` };
+        }
+
+        return { ok: true, mensaje: payload.mensaje || "Producto eliminado correctamente" };
+    } catch (error) {
+        console.error("Error eliminando producto:", error);
+        return { ok: false, mensaje: "❌ No se pudo conectar con el servidor" };
+    }
+}
+
 // --- Cargar todo al iniciar ---
 document.addEventListener("DOMContentLoaded", async () => {
     const filtro = document.getElementById("filtroCategoria");
 
     if (filtro) {
-        filtro.addEventListener("change", () => cargarProductos(filtro.value));
+        filtro.addEventListener("change", () => {
+            filtroActual = filtro.value;
+            cargarProductos(filtroActual);
+        });
     }
 
     try {

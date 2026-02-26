@@ -18,26 +18,24 @@
     <h1>Panel de Administración</h1>
 
     <form id="formProducto">
-    <label>Nombre del producto:</label>
-    <input type="text" id="nombre" required>
+    <p class="form-ayuda">
+        Seleccioná varias fotos, completá el nombre, precio y categoría para cada una y subilas juntas.
+    </p>
 
-    <label>Precio:</label>
-    <input type="text" id="precio" required>
-
-    <label for="categoria">Categoría:</label>
+    <label for="categoria">Categoría sugerida:</label>
     <select id="categoria" required>
         <option value="" disabled selected>Seleccionar categoría</option>
     </select>
+    <small class="form-ayuda__hint">Usamos esta categoría como valor inicial de cada imagen; podés cambiarla luego en la lista.</small>
 
-    <label>Imagen:</label>
-    <input type="file" id="imagen" accept="image/*" required>
+    <label>Imágenes:</label>
+    <input type="file" id="imagen" accept="image/*" multiple required>
     
-    <div id="preview-container" style="margin-top:1rem; text-align:center;">
-    <img id="preview-img" src="" alt="Vista previa" 
-        style="max-width: 200px; max-height: 200px; display:none; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.1);" />
+    <div id="batchList" class="batch-list">
+        <p class="batch-placeholder">Seleccioná una o más imágenes para comenzar.</p>
     </div>
 
-    <button type="submit">Agregar producto</button>
+    <button type="submit">Cargar productos</button>
     </form>
 
     <section class="panel-categorias">
@@ -63,6 +61,17 @@
         </select>
     </div>
 
+    <section class="acciones-masivas" aria-live="polite">
+        <div class="acciones-masivas__status">
+            <p id="seleccionContador">0 productos seleccionados</p>
+        </div>
+        <div class="acciones-masivas__botones">
+            <button type="button" id="btnSeleccionarTodo" class="btn-secundario">Seleccionar todo</button>
+            <button type="button" id="btnLimpiarSeleccion" class="btn-terciario">Limpiar selección</button>
+            <button type="button" id="btnEliminarSeleccion" class="btn-peligro" disabled>Eliminar seleccionados</button>
+        </div>
+    </section>
+
     <div class="productos" id="listaProductos"></div>
 
     <div id="toast-root" class="toast-root" aria-live="polite"></div>
@@ -76,26 +85,6 @@
             </div>
         </div>
     </div>
-
-    <script>
-const inputImagen = document.getElementById("imagen");
-const previewImg = document.getElementById("preview-img");
-
-inputImagen.addEventListener("change", (e) => {
-    const file = e.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            previewImg.src = event.target.result;
-            previewImg.style.display = "inline-block";
-        };
-        reader.readAsDataURL(file);
-    } else {
-        previewImg.src = "";
-        previewImg.style.display = "none";
-    }
-});
-</script>
 
     <script type="module" src="admin.js"></script>
 </body>
