@@ -23,6 +23,8 @@ export const siteContent = {
       handle: "@tiendaveniguapa20",
       url: "https://www.instagram.com/tiendaveniguapa20",
       heroCta: "Hablar por Instagram"
-    }
-  }
+    },
+    email: ""
+  },
+  footerNote: "© 2026 Vení Guapa - Todos los derechos reservados."
 };

@@ -143,11 +143,6 @@ function clearSeleccion(keepCheckboxes = false) {
 
 updateSeleccionUI();
 
-// Tomar la instancia de Firestore expuesta por el script de módulo
-if (!db) {
-    console.error('Firestore (db) no está disponible. Verifica la configuración de Firebase arriba.');
-}
-
 function renderPlaceholderBatch() {
     if (!batchList) return;
     batchList.innerHTML = `<p class="batch-placeholder">Seleccioná una o más imágenes para comenzar.</p>`;
@@ -368,6 +363,8 @@ function pluralizarProductos(total) {
     return total === 1 ? "1 producto" : `${total} productos`;
 }
 
+let unsubscribeProductos = null;
+
 function cargarProductos(filtro = filtroActual) {
     filtroActual = filtro;
     selectedProducts.clear();
@@ -375,15 +372,15 @@ function cargarProductos(filtro = filtroActual) {
     const lista = document.getElementById("listaProductos");
     lista.innerHTML = "<p>Cargando...</p>";
 
-    if (!db) {
-        console.warn("Firestore aún no está listo. Reintentando...");
-        setTimeout(() => cargarProductos(filtro), 100);
-        return;
+    // Cancelar listener anterior antes de registrar uno nuevo
+    if (unsubscribeProductos) {
+        unsubscribeProductos();
+        unsubscribeProductos = null;
     }
 
     const productosRef = collection(db, "productos");
 
-    onSnapshot(
+    unsubscribeProductos = onSnapshot(
         productosRef,
         (snapshot) => {
             lista.innerHTML = "";
@@ -413,7 +410,7 @@ function cargarProductos(filtro = filtroActual) {
                 const totalCategoria = productosPorCategoria[categoria].length;
                 categoriaDiv.innerHTML = `
                     <div class="categoria-header">
-                        <h2>${categoria.charAt(0).toUpperCase() + categoria.slice(1)}</h2>
+                        <h2>${escapeHtml(capitalizar(categoria))}</h2>
                         <p class="categoria-count">${pluralizarProductos(totalCategoria)}</p>
                     </div>
                 `;
@@ -425,14 +422,17 @@ function cargarProductos(filtro = filtroActual) {
                     const categoriaLabel = producto.categoria || categoria;
                     const checkedAttr = selectedProducts.has(id) ? "checked" : "";
                     div.innerHTML = `
-                        <input type="checkbox" class="producto-select" value="${id}" ${checkedAttr}>
-                        <img src="${imagen}" alt="${nombre}">
+                        <input type="checkbox" class="producto-select" value="${escapeHtml(id)}" ${checkedAttr}>
+                        <img src="${escapeHtml(imagen)}" alt="${escapeHtml(nombre)}">
                         <div class="producto-info">
-                            <strong>${nombre}</strong>
-                            <span>${precio}</span>
-                            <span class="producto-meta">${capitalizar(categoriaLabel || "")}</span>
+                            <strong>${escapeHtml(nombre)}</strong>
+                            <span>${escapeHtml(precio)}</span>
+                            <span class="producto-meta">${escapeHtml(capitalizar(categoriaLabel || ""))}</span>
                         </div>
-                        <button class="eliminar" data-id="${id}">Eliminar</button>
+                        <div class="producto-acciones">
+                            <button class="editar" data-id="${escapeHtml(id)}" data-nombre="${escapeHtml(nombre)}" data-precio="${escapeHtml(precio)}">Editar</button>
+                            <button class="eliminar" data-id="${escapeHtml(id)}">Eliminar</button>
+                        </div>
                     `;
                     categoriaDiv.appendChild(div);
                 });
@@ -557,6 +557,15 @@ async function fetchCategoriasApi() {
 
 function capitalizar(nombre = "") {
     return nombre.charAt(0).toUpperCase() + nombre.slice(1);
+}
+
+function escapeHtml(str = "") {
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
 }
 
 async function cargarCategorias() {
@@ -724,6 +733,105 @@ async function eliminarProductoApi(id) {
         return { ok: false, mensaje: "❌ No se pudo conectar con el servidor" };
     }
 }
+
+// --- Editar producto ---
+const editModal = document.getElementById("edit-modal");
+const editNombreInput = document.getElementById("editNombre");
+const editPrecioInput = document.getElementById("editPrecio");
+
+function showEditModal({ nombre, precio }) {
+    if (!editModal || !editNombreInput || !editPrecioInput) return Promise.resolve(null);
+
+    editNombreInput.value = nombre || "";
+    editPrecioInput.value = precio || "";
+    editModal.classList.add("is-visible");
+    editModal.setAttribute("aria-hidden", "false");
+
+    setTimeout(() => editNombreInput.focus(), 50);
+
+    return new Promise((resolve) => {
+        const saveBtn = editModal.querySelector('[data-edit="save"]');
+        const cancelBtn = editModal.querySelector('[data-edit="cancel"]');
+
+        const cleanup = (result) => {
+            editModal.classList.remove("is-visible");
+            editModal.setAttribute("aria-hidden", "true");
+            saveBtn.removeEventListener("click", onSave);
+            cancelBtn.removeEventListener("click", onCancel);
+            editModal.removeEventListener("click", onBackdrop);
+            document.removeEventListener("keydown", onKey);
+            resolve(result);
+        };
+
+        const onSave = () => {
+            const nuevoNombre = editNombreInput.value.trim();
+            const nuevoPrecio = editPrecioInput.value.trim();
+            if (!nuevoNombre || !nuevoPrecio) {
+                showToast("Nombre y precio son requeridos", "warning");
+                return;
+            }
+            cleanup({ nombre: nuevoNombre, precio: nuevoPrecio });
+        };
+        const onCancel = () => cleanup(null);
+        const onBackdrop = (e) => { if (e.target === editModal) cleanup(null); };
+        const onKey = (e) => {
+            if (e.key === "Escape") cleanup(null);
+            if (e.key === "Enter" && document.activeElement !== saveBtn) onSave();
+        };
+
+        saveBtn.addEventListener("click", onSave);
+        cancelBtn.addEventListener("click", onCancel);
+        editModal.addEventListener("click", onBackdrop);
+        document.addEventListener("keydown", onKey);
+    });
+}
+
+async function editarProductoApi(id, nombre, precio) {
+    try {
+        const res = await fetch(`${SERVER_URL}/api/productos/${id}`, {
+            method: "PATCH",
+            headers: { ...adminHeaders(), "Content-Type": "application/json" },
+            body: JSON.stringify({ nombre, precio })
+        });
+
+        if (res.status === 401) {
+            showToast("🔒 No autorizado. Ingresá de nuevo.", "error");
+            localStorage.removeItem(ADMIN_TOKEN_KEY);
+            window.location.href = "/admin/login.html";
+            return { status: "unauth" };
+        }
+
+        const payload = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            return { ok: false, mensaje: payload.error || `HTTP ${res.status}` };
+        }
+        return { ok: true, mensaje: payload.mensaje || "Producto actualizado" };
+    } catch (error) {
+        console.error("Error editando producto:", error);
+        return { ok: false, mensaje: "❌ No se pudo conectar con el servidor" };
+    }
+}
+
+document.addEventListener("click", async (e) => {
+    const btn = e.target.closest(".editar");
+    if (!btn) return;
+
+    const id = btn.dataset.id;
+    const nombre = btn.dataset.nombre;
+    const precio = btn.dataset.precio;
+
+    const resultado = await showEditModal({ nombre, precio });
+    if (!resultado) return;
+
+    const apiResult = await editarProductoApi(id, resultado.nombre, resultado.precio);
+    if (apiResult?.status === "unauth") return;
+
+    if (apiResult.ok) {
+        showToast("✅ Producto actualizado", "success");
+    } else {
+        showToast(apiResult.mensaje || "⚠️ No se pudo actualizar el producto", "warning");
+    }
+});
 
 // --- Cargar todo al iniciar ---
 document.addEventListener("DOMContentLoaded", async () => {

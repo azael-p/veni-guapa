@@ -1,6 +1,6 @@
 // --- Conexión con Firebase ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, onSnapshot, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, query, where, getDocs, limit, startAfter, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { siteContent } from "./content.js";
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -44,7 +44,16 @@ const CONTACT_INSTAGRAM_URL = siteContent?.contact?.instagram?.url || "https://w
 const CONTACT_INSTAGRAM_HANDLE = siteContent?.contact?.instagram?.handle || "@tiendaveniguapa20";
 const HERO_INSTAGRAM_CTA = siteContent?.contact?.instagram?.heroCta || "Hablar por Instagram";
 
-const DEFAULT_CATEGORIES = ["remeras", "blazers", "pantalones", "vestidos", "accesorios"];
+// --- Animación de entrada para tarjetas de producto ---
+const cardObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add("in-view");
+            cardObserver.unobserve(entry.target);
+        }
+    });
+}, { rootMargin: "0px 0px -40px 0px", threshold: 0.1 });
+
 const currencyFormatter = new Intl.NumberFormat("es-AR", {
     style: "currency",
     currency: "ARS",
@@ -55,12 +64,17 @@ const currencyFormatter = new Intl.NumberFormat("es-AR", {
 let categorias = [];
 
 function buildProductMessage(nombre, categoria, precio = "") {
-    const partes = [
-        `Hola Veni Guapa! Vi ${nombre || "una prenda"}`,
-        precio ? `a ${precio}` : "",
-        categoria ? `en la categoría ${categoria}` : ""
-    ].filter(Boolean);
-    return `${partes.join(" ")}. ¿Está disponible?`;
+    const tienda = siteContent?.storeName || "la tienda";
+    const lineas = [
+        `Hola ${tienda}! Vi este producto en la galería:`,
+        ``,
+        `*${nombre || "Producto"}*`,
+        precio ? `Precio: ${precio}` : "",
+        categoria ? `Categoría: ${capitalizar(categoria)}` : "",
+        ``,
+        `¿Está disponible?`
+    ].filter((l) => l !== undefined);
+    return lineas.join("\n");
 }
 
 function buildWhatsAppLink(nombre, categoria, precio) {
@@ -74,6 +88,15 @@ function buildGenericWhatsappLink(message) {
 
 function capitalizar(texto = "") {
     return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
+function escapeHtml(str = "") {
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
 }
 
 function categoriaId(nombre) {
@@ -126,6 +149,31 @@ function applyStaticContent() {
         contactInstagram.href = CONTACT_INSTAGRAM_URL;
         contactInstagram.textContent = `Mensaje directo ${CONTACT_INSTAGRAM_HANDLE}`;
     }
+    const footerNote = document.getElementById("footerNote");
+    if (footerNote) {
+        const year = new Date().getFullYear();
+        const fallback = `© ${year} ${siteContent?.storeName || "Vení Guapa"} - Todos los derechos reservados.`;
+        footerNote.textContent = siteContent?.footerNote || fallback;
+    }
+    const footerStoreName = document.getElementById("footerStoreName");
+    if (footerStoreName && siteContent?.storeName) {
+        footerStoreName.textContent = siteContent.storeName;
+    }
+    const footerWhatsapp = document.getElementById("footerWhatsapp");
+    if (footerWhatsapp) {
+        footerWhatsapp.href = buildGenericWhatsappLink(CONTACT_WHATSAPP_MESSAGE);
+    }
+    const footerInstagram = document.getElementById("footerInstagram");
+    if (footerInstagram) {
+        footerInstagram.href = CONTACT_INSTAGRAM_URL;
+        footerInstagram.textContent = CONTACT_INSTAGRAM_HANDLE;
+    }
+    const footerEmail = document.getElementById("footerEmail");
+    const email = siteContent?.contact?.email || "";
+    if (footerEmail && email) {
+        footerEmail.href = `mailto:${email}`;
+        footerEmail.textContent = email;
+    }
 }
 
 function renderCategoriasDom(listaCategorias) {
@@ -143,12 +191,14 @@ function renderCategoriasDom(listaCategorias) {
         categoriaDiv.innerHTML = `
             <button class="boton-categoria" data-categoria="${id}" data-label="${label}">${label}</button>
             <div class="carrusel" id="${id}" data-label="${label}">
-                <div class="carrusel-titulo">
-                    <span class="carrusel-label">${label}</span>
+                <div class="carrusel-inner">
+                    <div class="carrusel-titulo">
+                        <span class="carrusel-label">${label}</span>
+                    </div>
+                    <button class="flecha izquierda" data-categoria="${id}">‹</button>
+                    <div class="galeria-imagenes"></div>
+                    <button class="flecha derecha" data-categoria="${id}">›</button>
                 </div>
-                <button class="flecha izquierda" data-categoria="${id}">‹</button>
-                <div class="galeria-imagenes"></div>
-                <button class="flecha derecha" data-categoria="${id}">›</button>
             </div>
         `;
         fragment.appendChild(categoriaDiv);
@@ -179,64 +229,127 @@ async function inicializarCategorias() {
     cargarProductos();
 }
 
+const LIMITE_PRODUCTOS = 12;
+
+// Renderiza un artículo y lo agrega a la galería
+function renderItem(galeria, data, categoria, delaySegundos) {
+    const precioVisible = formatPrice(data.precio);
+    const categoriaLabel = capitalizar(categoria);
+    const item = document.createElement("article");
+    item.className = "item-galeria";
+    item.tabIndex = 0;
+    item.setAttribute("role", "button");
+    item.setAttribute("aria-label", `Ver ${escapeHtml(data.nombre)} en grande`);
+    item.innerHTML = `
+        <img loading="lazy" class="lazy-img" src="${escapeHtml(data.imagen)}" alt="${escapeHtml(data.nombre)}">
+        <div class="item-overlay">
+            <p class="item-nombre">${escapeHtml(data.nombre)}</p>
+            <p class="item-precio">${escapeHtml(precioVisible)}</p>
+            <div class="item-cta">
+                <a class="cta-mini whatsapp" href="${escapeHtml(buildWhatsAppLink(data.nombre, categoriaLabel, precioVisible))}" target="_blank" rel="noopener noreferrer">Consultar</a>
+            </div>
+        </div>
+    `;
+    galeria.appendChild(item);
+    cardObserver.observe(item);
+
+    const img = item.querySelector("img");
+    img.style.animationDelay = `${delaySegundos}s`;
+    img.dataset.nombre = data.nombre;
+    img.dataset.precio = precioVisible;
+    img.dataset.categoria = categoriaLabel;
+
+    if (img.complete) {
+        img.classList.add("loaded");
+    } else {
+        img.addEventListener("load", () => img.classList.add("loaded"), { once: true });
+    }
+}
+
+// Carga productos adicionales al hacer clic en "Ver más"
+async function cargarMasProductos(galeria, inner, categoria, lastDoc) {
+    try {
+        const q = query(
+            collection(db, "productos"),
+            where("categoria", "==", categoria),
+            orderBy("__name__"),
+            startAfter(lastDoc),
+            limit(LIMITE_PRODUCTOS)
+        );
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) return;
+
+        const offset = galeria.querySelectorAll(".item-galeria").length;
+        snapshot.forEach((docSnap, i) => {
+            renderItem(galeria, docSnap.data(), categoria, (offset + i) * 0.05);
+        });
+
+        if (snapshot.size >= LIMITE_PRODUCTOS) {
+            const newLast = snapshot.docs[snapshot.docs.length - 1];
+            agregarBotonVerMas(inner, galeria, categoria, newLast);
+        }
+    } catch (error) {
+        console.error(`Error cargando más productos de "${categoria}":`, error);
+    }
+}
+
+function agregarBotonVerMas(inner, galeria, categoria, lastDoc) {
+    inner.querySelector(".btn-ver-mas")?.remove();
+    const btn = document.createElement("button");
+    btn.className = "btn-ver-mas";
+    btn.textContent = "Ver más";
+    btn.addEventListener("click", async () => {
+        btn.remove();
+        await cargarMasProductos(galeria, inner, categoria, lastDoc);
+    });
+    inner.appendChild(btn);
+}
+
 // --- Cargar productos desde Firebase ---
 async function cargarProductos() {
     if (!categorias.length) return;
     for (const categoria of categorias) {
-        const q = query(collection(db, "productos"), where("categoria", "==", categoria));
+        const q = query(
+            collection(db, "productos"),
+            where("categoria", "==", categoria),
+            orderBy("__name__"),
+            limit(LIMITE_PRODUCTOS)
+        );
 
-    // Listener en tiempo real por categoría
-    onSnapshot(q, (querySnapshot) => {
-        const contenedor = document.getElementById(categoriaId(categoria));
-        if (!contenedor) return;
+        onSnapshot(q, (querySnapshot) => {
+            const contenedor = document.getElementById(categoriaId(categoria));
+            if (!contenedor) return;
+            const inner = contenedor.querySelector(".carrusel-inner");
+            const galeria = contenedor.querySelector(".galeria-imagenes");
+            if (!galeria || !inner) return;
 
-        const galeria = contenedor.querySelector(".galeria-imagenes");
-        if (!galeria) return;
-        galeria.innerHTML = "";
+            // Limpiar galería y botón "Ver más" anterior
+            galeria.innerHTML = "";
+            inner.querySelector(".btn-ver-mas")?.remove();
 
-        if (querySnapshot.empty) {
-            contenedor.classList.add("sin-items");
-            galeria.innerHTML = `<p class="empty-state">Sin productos por ahora.</p>`;
-            return;
-        }
-        contenedor.classList.remove("sin-items");
-
-        let delay = 0;
-        querySnapshot.forEach((docSnap) => {
-            const data = docSnap.data();
-            const precioVisible = formatPrice(data.precio);
-            const categoriaLabel = capitalizar(categoria);
-            const item = document.createElement("article");
-            item.className = "item-galeria";
-            item.tabIndex = 0;
-            item.setAttribute("role", "button");
-            item.setAttribute("aria-label", `Ver ${data.nombre} en grande`);
-            item.innerHTML = `
-                <img loading="lazy" class="lazy-img" src="${data.imagen}" alt="${data.nombre}">
-                <div class="item-overlay">
-                    <p class="item-nombre">${data.nombre}</p>
-                    <p class="item-precio">${precioVisible}</p>
-                    <div class="item-cta">
-                        <a class="cta-mini whatsapp" href="${buildWhatsAppLink(data.nombre, categoriaLabel, precioVisible)}" target="_blank" rel="noopener noreferrer">Consultar</a>
-                    </div>
-                </div>
-            `;
-            galeria.appendChild(item);
-
-            const img = item.querySelector("img");
-            img.style.animationDelay = `${delay}s`;
-            delay += 0.1;
-            img.dataset.nombre = data.nombre;
-            img.dataset.precio = precioVisible;
-            img.dataset.categoria = categoriaLabel;
-
-            if (img.complete) {
-                img.classList.add("loaded");
-            } else {
-                img.addEventListener("load", () => img.classList.add("loaded"), { once: true });
+            if (querySnapshot.empty) {
+                contenedor.classList.add("sin-items");
+                galeria.innerHTML = `<p class="empty-state">Sin productos por ahora.</p>`;
+                return;
             }
+            contenedor.classList.remove("sin-items");
+
+            querySnapshot.forEach((docSnap, i) => {
+                renderItem(galeria, docSnap.data(), categoria, i * 0.05);
+            });
+
+            if (querySnapshot.size >= LIMITE_PRODUCTOS) {
+                const lastDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
+                agregarBotonVerMas(inner, galeria, categoria, lastDoc);
+            }
+        }, (error) => {
+            console.error(`Error cargando categoría "${categoria}":`, error);
+            const contenedor = document.getElementById(categoriaId(categoria));
+            if (!contenedor) return;
+            contenedor.classList.add("sin-items");
+            const galeria = contenedor.querySelector(".galeria-imagenes");
+            if (galeria) galeria.innerHTML = `<p class="empty-state">Error al cargar productos.</p>`;
         });
-    });
     }
 }
 

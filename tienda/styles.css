@@ -329,20 +329,27 @@ section {
 
 /* Carrusel */
 .carrusel {
-  position: relative;
-  overflow: hidden;
-  padding: 0 3rem; /* Espacio para flechas */
-  max-height: 0;
+  display: grid;
+  grid-template-rows: 0fr;
   opacity: 0;
   transform: translateY(-10px);
-  transition: max-height 0.6s ease, opacity 0.5s ease, transform 0.5s ease, padding 0.3s ease;
+  transition: grid-template-rows 0.5s ease, opacity 0.5s ease, transform 0.5s ease;
 }
 
 .carrusel.visible {
-  max-height: 9999px;
-  padding: 1rem 3rem;
+  grid-template-rows: 1fr;
   opacity: 1;
   transform: translateY(0);
+}
+
+.carrusel-inner {
+  overflow: hidden;
+  position: relative;
+  padding: 0 3rem;
+}
+
+.carrusel.visible .carrusel-inner {
+  padding: 1rem 3rem;
 }
 
 .carrusel-titulo {
@@ -370,7 +377,7 @@ section {
   display: flex;
 }
 
-.carrusel:not(.visible) .flecha {
+.carrusel:not(.visible) .carrusel-inner .flecha {
   opacity: 0;
   pointer-events: none;
 }
@@ -388,6 +395,25 @@ section {
   padding: 1rem 0.5rem;
   scroll-snap-type: x mandatory;
   width: 100%;
+}
+
+.btn-ver-mas {
+  display: block;
+  margin: 1rem auto 0;
+  padding: 0.6rem 2rem;
+  background: transparent;
+  border: 2px solid var(--color-principal);
+  color: var(--color-principal);
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: var(--transicion);
+}
+
+.btn-ver-mas:hover {
+  background: var(--color-principal);
+  color: white;
 }
 
 .empty-state {
@@ -425,12 +451,30 @@ section {
   scroll-snap-align: center;
   background: white;
   box-shadow: var(--sombra-suave);
-  transition: var(--transicion);
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.3s ease;
   position: relative;
   cursor: zoom-in;
 }
 
+/* Animación de entrada con IntersectionObserver */
+.js-enabled .item-galeria {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.55s ease, transform 0.55s ease, box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.js-enabled .item-galeria.in-view {
+  opacity: 1;
+  transform: translateY(0);
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.3s ease;
+}
+
 .item-galeria:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--sombra-fuerte);
+}
+
+.js-enabled .item-galeria.in-view:hover {
   transform: translateY(-8px);
   box-shadow: var(--sombra-fuerte);
 }
@@ -537,18 +581,91 @@ section {
 .flecha.izquierda { left: 0; }
 .flecha.derecha { right: 0; }
 
+/* Botón Ver catálogo */
+.cta-catalogo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  padding: 0.9rem 1.8rem;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: 1rem;
+  background: var(--color-principal);
+  color: white;
+  transition: var(--transicion);
+  box-shadow: var(--sombra-suave);
+}
+
+.cta-catalogo::after {
+  content: '↓';
+  font-size: 1.1em;
+  transition: transform 0.3s ease;
+}
+
+.cta-catalogo:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sombra-fuerte);
+}
+
+.cta-catalogo:hover::after {
+  transform: translateY(3px);
+}
+
 /* Footer */
 footer {
   background-color: var(--color-principal);
   color: white;
-  text-align: center;
-  padding: 3rem 1rem;
+  padding: 2.5rem 2rem;
   margin-top: 4rem;
 }
 
+.footer-content {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.footer-brand {
+  text-align: left;
+}
+
+.footer-store-name {
+  font-weight: 700;
+  font-size: 1.2rem;
+  margin-bottom: 0.3rem;
+  letter-spacing: 0.5px;
+}
+
 footer p {
-  opacity: 0.9;
+  opacity: 0.75;
+  font-size: 0.85rem;
+}
+
+.footer-links {
+  display: flex;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.footer-link {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  padding: 0.45rem 1.2rem;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
   font-size: 0.9rem;
+  transition: var(--transicion);
+}
+
+.footer-link:hover {
+  color: white;
+  border-color: white;
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .scroll-top {
@@ -830,10 +947,14 @@ footer p {
     border-radius: 999px;
   }
 
-  .carrusel {
+  .carrusel-inner {
+    padding: 0;
+  }
+
+  .carrusel.visible .carrusel-inner {
     padding: 0.5rem 0;
   }
-  
+
   .flecha {
     width: 44px;
     height: 44px;
@@ -850,6 +971,20 @@ footer p {
   .scroll-top {
     right: 1rem;
     bottom: 1rem;
+  }
+
+  .footer-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 1.2rem;
+  }
+
+  .footer-brand {
+    text-align: center;
+  }
+
+  .footer-links {
+    justify-content: center;
   }
 }
 

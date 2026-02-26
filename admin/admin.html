@@ -86,6 +86,22 @@
         </div>
     </div>
 
+    <div id="edit-modal" class="confirm-modal" aria-hidden="true" role="dialog" aria-labelledby="edit-modal-title">
+        <div class="confirm-dialog">
+            <p id="edit-modal-title" style="font-weight:700;font-size:1.05rem;margin-bottom:1rem;color:#1f2933;">Editar producto</p>
+            <div class="edit-modal-fields">
+                <label class="edit-label" for="editNombre">Nombre</label>
+                <input type="text" id="editNombre" class="edit-input" placeholder="Nombre del producto" required>
+                <label class="edit-label" for="editPrecio">Precio</label>
+                <input type="text" id="editPrecio" class="edit-input" placeholder="Precio" required>
+            </div>
+            <div class="confirm-actions">
+                <button type="button" class="btn-secondary" data-edit="cancel">Cancelar</button>
+                <button type="button" class="btn-save" data-edit="save">Guardar</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="admin.js"></script>
 </body>
 </html>

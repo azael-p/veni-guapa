@@ -50,6 +50,7 @@
             </ul>
 
             <div class="intro-acciones">
+                <a class="cta-catalogo" href="#categorias">Ver catálogo</a>
                 <a class="cta-contacto whatsapp" id="heroWhatsappBtn" href="https://wa.me/59898238313?text=Hola%20Veni%20Guapa%21%20Quiero%20pedir%20info%20sobre%20las%20prendas." target="_blank" rel="noopener noreferrer">Escribir por WhatsApp</a>
                 <a class="cta-contacto instagram" id="heroInstagramBtn" href="https://www.instagram.com/tiendaveniguapa20" target="_blank" rel="noopener noreferrer">Hablar por Instagram</a>
             </div>
@@ -58,51 +59,7 @@
 
     <section id="categorias">
         <h2>Categorías</h2>
-
-        <div class="categoria">
-            <button class="boton-categoria" data-categoria="remeras">Remeras</button>
-            <div class="carrusel" id="remeras">
-                <button class="flecha izquierda" data-categoria="remeras">‹</button>
-                <div class="galeria-imagenes"></div>
-                <button class="flecha derecha" data-categoria="remeras">›</button>
-            </div>
-        </div>
-
-        <div class="categoria">
-            <button class="boton-categoria" data-categoria="blazers">Blazers</button>
-            <div class="carrusel" id="blazers">
-                <button class="flecha izquierda" data-categoria="blazers">‹</button>
-                <div class="galeria-imagenes"></div>
-                <button class="flecha derecha" data-categoria="blazers">›</button>
-            </div>
-        </div>
-
-        <div class="categoria">
-            <button class="boton-categoria" data-categoria="pantalones">Pantalones</button>
-            <div class="carrusel" id="pantalones">
-                <button class="flecha izquierda" data-categoria="pantalones">‹</button>
-                <div class="galeria-imagenes"></div>
-                <button class="flecha derecha" data-categoria="pantalones">›</button>
-            </div>
-        </div>
-
-        <div class="categoria">
-            <button class="boton-categoria" data-categoria="vestidos">Vestidos</button>
-            <div class="carrusel" id="vestidos">
-                <button class="flecha izquierda" data-categoria="vestidos">‹</button>
-                <div class="galeria-imagenes"></div>
-                <button class="flecha derecha" data-categoria="vestidos">›</button>
-            </div>
-        </div>
-
-        <div class="categoria">
-            <button class="boton-categoria" data-categoria="accesorios">Accesorios</button>
-            <div class="carrusel" id="accesorios">
-                <button class="flecha izquierda" data-categoria="accesorios">‹</button>
-                <div class="galeria-imagenes"></div>
-                <button class="flecha derecha" data-categoria="accesorios">›</button>
-            </div>
-        </div>
+        <!-- Las categorías se inyectan dinámicamente desde Firestore -->
     </section>
 
     <section id="sobre-nosotros">
@@ -125,13 +82,22 @@
 </main>
 
 <footer>
-    <p>&copy; 2026 Vení Guapa - Todos los derechos reservados.</p>
+    <div class="footer-content">
+        <div class="footer-brand">
+            <p class="footer-store-name" id="footerStoreName">Vení Guapa</p>
+            <p id="footerNote">&copy; 2026 Vení Guapa - Todos los derechos reservados.</p>
+        </div>
+        <div class="footer-links">
+            <a class="footer-link" id="footerWhatsapp" href="#" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+            <a class="footer-link" id="footerInstagram" href="#" target="_blank" rel="noopener noreferrer">Instagram</a>
+            <a class="footer-link" id="footerEmail" href="#">Email</a>
+        </div>
+    </div>
 </footer>
 
 <button id="scrollTopBtn" class="scroll-top" aria-label="Volver al inicio">↑</button>
 <div class="overlay-fondo"></div>
 
-<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
 <script type="module" src="scripts.js"></script>
 <!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PX94VL5D"
