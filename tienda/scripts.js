@@ -1,6 +1,7 @@
 // --- Conexión con Firebase ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, onSnapshot, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { siteContent } from "./content.js";
 
 document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.add("js-enabled");
@@ -33,7 +34,16 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const CONTACT_WHATSAPP = "59898238313";
+const CONTACT_WHATSAPP = siteContent?.contact?.whatsapp?.international || "59898238313";
+const CONTACT_WHATSAPP_DISPLAY = siteContent?.contact?.whatsapp?.display || "098 238 313";
+const HERO_WHATSAPP_MESSAGE =
+  siteContent?.contact?.whatsapp?.heroMessage || "Hola Veni Guapa! Quiero pedir info sobre las prendas.";
+const CONTACT_WHATSAPP_MESSAGE =
+  siteContent?.contact?.whatsapp?.contactMessage || "Hola Veni Guapa! Vi una prenda en la galería y quiero encargarla.";
+const CONTACT_INSTAGRAM_URL = siteContent?.contact?.instagram?.url || "https://www.instagram.com/tiendaveniguapa20";
+const CONTACT_INSTAGRAM_HANDLE = siteContent?.contact?.instagram?.handle || "@tiendaveniguapa20";
+const HERO_INSTAGRAM_CTA = siteContent?.contact?.instagram?.heroCta || "Hablar por Instagram";
+
 const DEFAULT_CATEGORIES = ["remeras", "blazers", "pantalones", "vestidos", "accesorios"];
 const currencyFormatter = new Intl.NumberFormat("es-AR", {
     style: "currency",
@@ -58,6 +68,10 @@ function buildWhatsAppLink(nombre, categoria, precio) {
     return `https://wa.me/${CONTACT_WHATSAPP}?text=${encodeURIComponent(mensaje)}`;
 }
 
+function buildGenericWhatsappLink(message) {
+    return `https://wa.me/${CONTACT_WHATSAPP}?text=${encodeURIComponent(message)}`;
+}
+
 function capitalizar(texto = "") {
     return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
@@ -72,6 +86,46 @@ function formatPrice(precio) {
         return `$${precio}`;
     }
     return currencyFormatter.format(numero);
+}
+
+function applyStaticContent() {
+    const title = document.getElementById("storeTitle");
+    if (title && siteContent?.storeName) {
+        title.textContent = siteContent.storeName;
+    }
+    const slogan = document.getElementById("storeSlogan");
+    if (slogan && siteContent?.slogan) {
+        slogan.textContent = siteContent.slogan;
+    }
+    const intro = document.getElementById("introDescription");
+    if (intro && siteContent?.introDescription) {
+        intro.textContent = siteContent.introDescription;
+    }
+    const about = document.getElementById("aboutText");
+    if (about && siteContent?.aboutText) {
+        about.textContent = siteContent.aboutText;
+    }
+
+    const heroWhatsapp = document.getElementById("heroWhatsappBtn");
+    if (heroWhatsapp) {
+        heroWhatsapp.href = buildGenericWhatsappLink(HERO_WHATSAPP_MESSAGE);
+    }
+    const heroInstagram = document.getElementById("heroInstagramBtn");
+    if (heroInstagram) {
+        heroInstagram.href = CONTACT_INSTAGRAM_URL;
+        heroInstagram.textContent = HERO_INSTAGRAM_CTA;
+    }
+
+    const contactWhatsapp = document.getElementById("contactWhatsapp");
+    if (contactWhatsapp) {
+        contactWhatsapp.href = buildGenericWhatsappLink(CONTACT_WHATSAPP_MESSAGE);
+        contactWhatsapp.textContent = `Escribir al ${CONTACT_WHATSAPP_DISPLAY}`;
+    }
+    const contactInstagram = document.getElementById("contactInstagram");
+    if (contactInstagram) {
+        contactInstagram.href = CONTACT_INSTAGRAM_URL;
+        contactInstagram.textContent = `Mensaje directo ${CONTACT_INSTAGRAM_HANDLE}`;
+    }
 }
 
 function renderCategoriasDom(listaCategorias) {
@@ -187,6 +241,7 @@ async function cargarProductos() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    applyStaticContent();
     inicializarCategorias();
 });
 
