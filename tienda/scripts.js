@@ -77,9 +77,13 @@ function renderCategoriasDom(listaCategorias) {
         const id = categoriaId(cat);
         const categoriaDiv = document.createElement("div");
         categoriaDiv.className = "categoria";
+        const label = capitalizar(cat);
         categoriaDiv.innerHTML = `
-            <button class="boton-categoria" data-categoria="${id}">${capitalizar(cat)}</button>
-            <div class="carrusel" id="${id}">
+            <button class="boton-categoria" data-categoria="${id}" data-label="${label}">${label}</button>
+            <div class="carrusel" id="${id}" data-label="${label}">
+                <div class="carrusel-titulo">
+                    <span class="carrusel-label">${label}</span>
+                </div>
                 <button class="flecha izquierda" data-categoria="${id}">‹</button>
                 <div class="galeria-imagenes"></div>
                 <button class="flecha derecha" data-categoria="${id}">›</button>
@@ -175,19 +179,54 @@ document.addEventListener("DOMContentLoaded", () => {
     inicializarCategorias();
 });
 
-// --- Mostrar solo una categoría a la vez con animación elegante ---
+document.addEventListener("DOMContentLoaded", () => {
+    const scrollBtn = document.getElementById("scrollTopBtn");
+    if (!scrollBtn) return;
+
+    const toggleScrollBtn = () => {
+        if (window.scrollY > 500) {
+            scrollBtn.classList.add("visible");
+        } else {
+            scrollBtn.classList.remove("visible");
+        }
+    };
+
+    window.addEventListener("scroll", toggleScrollBtn, { passive: true });
+    window.addEventListener("resize", toggleScrollBtn);
+    scrollBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    toggleScrollBtn();
+});
+
+// --- Mostrar solo una categoría a la vez con indicador ---
 document.addEventListener("click", (e) => {
-    if (e.target.classList.contains("boton-categoria")) {
-        const categoriaSeleccionada = e.target.dataset.categoria;
-        const carruselSeleccionado = document.getElementById(categoriaSeleccionada);
+    const boton = e.target.closest(".boton-categoria");
+    if (!boton) return;
 
-        // Cerrar todas las demás
-        document.querySelectorAll(".carrusel").forEach((carrusel) => {
-        if (carrusel !== carruselSeleccionado) carrusel.classList.remove("visible");
-        });
+    const categoriaSeleccionada = boton.dataset.categoria;
+    const carruselSeleccionado = document.getElementById(categoriaSeleccionada);
+    if (!carruselSeleccionado) return;
 
-    // Alternar la seleccionada
-    carruselSeleccionado.classList.toggle("visible");
+    document.querySelectorAll(".carrusel").forEach((carrusel) => {
+        if (carrusel !== carruselSeleccionado) {
+            carrusel.classList.remove("visible");
+        }
+    });
+
+    document.querySelectorAll(".boton-categoria").forEach((btn) => {
+        if (btn !== boton) {
+            btn.classList.remove("activo");
+        }
+    });
+
+    const isVisible = carruselSeleccionado.classList.toggle("visible");
+    if (isVisible) {
+        boton.classList.add("activo");
+    } else {
+        boton.classList.remove("activo");
     }
 });
 
@@ -199,13 +238,21 @@ modal.setAttribute("aria-modal", "true");
 modal.setAttribute("aria-label", "Imagen ampliada");
 modal.innerHTML = `
 <button class="modal-flecha izquierda" aria-label="Imagen anterior">‹</button>
-<img class="modal-img">
+<div class="modal-body">
+    <img class="modal-img" alt="">
+    <div class="modal-info">
+        <span class="modal-counter"></span>
+        <span class="modal-name"></span>
+    </div>
+</div>
 <button class="modal-flecha derecha" aria-label="Imagen siguiente">›</button>
 <span class="cerrar">&times;</span>
 `;
 document.body.appendChild(modal);
 
 const modalImg = modal.querySelector(".modal-img");
+const modalCounter = modal.querySelector(".modal-counter");
+const modalName = modal.querySelector(".modal-name");
 let imagenes = [];
 let indiceActual = 0;
 let startX = 0;
@@ -275,6 +322,16 @@ modal.addEventListener("touchend", () => {
     isSwiping = false;
 });
 
+function actualizarMeta(indice) {
+    if (!imagenes[indice]) return;
+    if (modalCounter) {
+        modalCounter.textContent = `${indice + 1}/${imagenes.length}`;
+    }
+    if (modalName) {
+        modalName.textContent = imagenes[indice].getAttribute("alt") || "Producto";
+    }
+}
+
 function mostrarImagen(indice, direccionAnim = 0) {
     if (!imagenes[indice]) return;
     modalImg.classList.remove("anim-left", "anim-right");
@@ -283,6 +340,7 @@ function mostrarImagen(indice, direccionAnim = 0) {
         modalImg.classList.add(direccionAnim > 0 ? "anim-right" : "anim-left");
     }
     modalImg.src = imagenes[indice].src;
+    actualizarMeta(indice);
 }
 
 function cambiarImagen(direccion) {
@@ -322,18 +380,37 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
-    // Creamos un "sentinela" justo después del header
+    const placeholder = document.createElement("div");
+    placeholder.id = "header-placeholder";
+    placeholder.style.width = "100%";
+    placeholder.style.height = `${header.offsetHeight}px`;
+    placeholder.style.display = "none";
+    header.insertAdjacentElement("afterend", placeholder);
+
+    const updatePlaceholderHeight = () => {
+        if (!header.classList.contains("compacto")) {
+            placeholder.style.height = `${header.offsetHeight}px`;
+        }
+    };
+    window.addEventListener("resize", updatePlaceholderHeight);
+
+    // Creamos un "sentinela" justo después del placeholder
     const sentinel = document.createElement("div");
     sentinel.id = "header-sentinel";
     sentinel.style.height = "1px"; // tamaño mínimo
-    header.insertAdjacentElement("afterend", sentinel);
+    placeholder.insertAdjacentElement("afterend", sentinel);
 
     const io = new IntersectionObserver(([entry]) => {
         // Compactar el header casi de inmediato al scrollear
         if (entry.intersectionRatio < 0.99) {
-        header.classList.add("compacto");
+            if (!header.classList.contains("compacto")) {
+                header.classList.add("compacto");
+            }
+            placeholder.style.display = "block";
         } else {
-        header.classList.remove("compacto");
+            header.classList.remove("compacto");
+            placeholder.style.display = "none";
+            updatePlaceholderHeight();
         }
     }, {
         root: null,
