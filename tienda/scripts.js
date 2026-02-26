@@ -275,14 +275,19 @@ modal.addEventListener("touchend", () => {
     isSwiping = false;
 });
 
-function mostrarImagen(indice) {
+function mostrarImagen(indice, direccionAnim = 0) {
     if (!imagenes[indice]) return;
+    modalImg.classList.remove("anim-left", "anim-right");
+    if (direccionAnim !== 0) {
+        void modalImg.offsetWidth; // reinicia animación
+        modalImg.classList.add(direccionAnim > 0 ? "anim-right" : "anim-left");
+    }
     modalImg.src = imagenes[indice].src;
 }
 
 function cambiarImagen(direccion) {
     indiceActual = (indiceActual + direccion + imagenes.length) % imagenes.length;
-    mostrarImagen(indiceActual);
+    mostrarImagen(indiceActual, direccion);
 }
 
 document.addEventListener("keydown", (e) => {

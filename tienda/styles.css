@@ -553,6 +553,7 @@ footer p {
   box-shadow: 0 0 50px rgba(0,0,0,0.5);
   transform: scale(0.9);
   transition: transform 0.3s ease;
+  opacity: 1;
 }
 
 .modal.abierta img {
@@ -564,7 +565,7 @@ footer p {
   top: 20px;
   right: 30px;
   color: white;
-  font-size: 3rem;
+  font-size: 3.4rem;
   cursor: pointer;
   transition: transform 0.3s ease;
 }
@@ -577,8 +578,8 @@ footer p {
   background: rgba(255, 255, 255, 0.1);
   color: white;
   border: none;
-  font-size: 2.4rem;
-  padding: 1.2rem;
+  font-size: 2.8rem;
+  padding: 1.4rem;
   cursor: pointer;
   border-radius: 50%;
   transition: var(--transicion);
@@ -603,6 +604,24 @@ footer p {
 @keyframes fadeInWave {
   0% { opacity: 0; transform: translateY(20px); }
   100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideFromRight {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideFromLeft {
+  from { opacity: 0; transform: translateX(-40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.modal-img.anim-right {
+  animation: slideFromRight 0.35s ease;
+}
+
+.modal-img.anim-left {
+  animation: slideFromLeft 0.35s ease;
 }
 
 .lazy-img {
