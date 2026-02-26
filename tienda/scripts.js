@@ -170,7 +170,7 @@ async function obtenerCategorias() {
     } catch (error) {
         console.error("No se pudieron cargar categorías dinámicas", error);
     }
-    return DEFAULT_CATEGORIES;
+    return [];
 }
 
 async function inicializarCategorias() {

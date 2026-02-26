@@ -258,17 +258,7 @@ app.delete("/api/productos/:id", async (req, res) => {
 // 📂 Categorías
 app.get("/api/categorias", async (_req, res) => {
   try {
-    let snapshot = await db.collection("categorias").orderBy("nombre").get();
-
-    if (snapshot.empty && DEFAULT_CATEGORIES.length) {
-      await Promise.all(
-        DEFAULT_CATEGORIES.map(async (nombre) => {
-          await db.collection("categorias").add({ nombre });
-        })
-      );
-      snapshot = await db.collection("categorias").orderBy("nombre").get();
-    }
-
+    const snapshot = await db.collection("categorias").orderBy("nombre").get();
     const categorias = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     res.json(categorias);
   } catch (error) {
