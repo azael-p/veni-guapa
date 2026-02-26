@@ -208,6 +208,8 @@ document.body.appendChild(modal);
 const modalImg = modal.querySelector(".modal-img");
 let imagenes = [];
 let indiceActual = 0;
+let startX = 0;
+let isSwiping = false;
 
 function abrirModal() {
     modal.classList.add("abierta");
@@ -248,6 +250,29 @@ modal.addEventListener("click", (e) => {
     if (e.target === modal) {
         cerrarModal();
     }
+});
+
+modal.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1) return;
+    startX = e.touches[0].clientX;
+    isSwiping = true;
+}, { passive: true });
+
+modal.addEventListener("touchmove", (e) => {
+    if (!isSwiping || e.touches.length !== 1) return;
+    const deltaX = e.touches[0].clientX - startX;
+    if (Math.abs(deltaX) > 50) {
+        isSwiping = false;
+        if (deltaX > 0) {
+            cambiarImagen(-1);
+        } else {
+            cambiarImagen(1);
+        }
+    }
+}, { passive: true });
+
+modal.addEventListener("touchend", () => {
+    isSwiping = false;
 });
 
 function mostrarImagen(indice) {

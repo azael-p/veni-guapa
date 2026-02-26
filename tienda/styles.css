@@ -564,7 +564,7 @@ footer p {
   top: 20px;
   right: 30px;
   color: white;
-  font-size: 2.5rem;
+  font-size: 3rem;
   cursor: pointer;
   transition: transform 0.3s ease;
 }
@@ -577,8 +577,8 @@ footer p {
   background: rgba(255, 255, 255, 0.1);
   color: white;
   border: none;
-  font-size: 2rem;
-  padding: 1rem;
+  font-size: 2.4rem;
+  padding: 1.2rem;
   cursor: pointer;
   border-radius: 50%;
   transition: var(--transicion);
@@ -685,11 +685,12 @@ footer p {
   }
 
   .boton-categoria {
-    max-width: 360px;
-    font-size: 1.2rem;
-    padding: 1.1rem 2.4rem;
+    max-width: 90%;
+    font-size: 1.35rem;
+    padding: 1.2rem 2.8rem;
     margin-left: auto;
     margin-right: auto;
+    border-radius: 999px;
   }
 
   .carrusel {
@@ -697,9 +698,10 @@ footer p {
   }
   
   .flecha {
-    width: 34px;
-    height: 34px;
+    width: 44px;
+    height: 44px;
     background: rgba(255, 255, 255, 0.95);
+    font-size: 1.6rem;
   }
   
   .flecha.izquierda { left: 5px; }
