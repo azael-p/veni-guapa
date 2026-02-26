@@ -34,7 +34,9 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 const CONTACT_WHATSAPP = "59899999999";
-const CONTACT_INSTAGRAM = "https://www.instagram.com/tiendaveniguapa20";
+const IG_USERNAME = "tiendaveniguapa20";
+const CONTACT_INSTAGRAM_PROFILE = `https://www.instagram.com/${IG_USERNAME}`;
+const CONTACT_INSTAGRAM_DM = `https://ig.me/m/${IG_USERNAME}`;
 const DEFAULT_CATEGORIES = ["remeras", "blazers", "pantalones", "vestidos", "accesorios"];
 const currencyFormatter = new Intl.NumberFormat("es-AR", {
     style: "currency",
@@ -45,9 +47,27 @@ const currencyFormatter = new Intl.NumberFormat("es-AR", {
 
 let categorias = [];
 
-function buildWhatsAppLink(nombre, categoria) {
-    const mensaje = `Hola Veni Guapa! Vi ${nombre || "una prenda"} en la categoría ${categoria}. ¿Está disponible?`;
+function buildProductMessage(nombre, categoria, precio = "") {
+    const partes = [
+        `Hola Veni Guapa! Vi ${nombre || "una prenda"}`,
+        precio ? `a ${precio}` : "",
+        categoria ? `en la categoría ${categoria}` : ""
+    ].filter(Boolean);
+    return `${partes.join(" ")}. ¿Está disponible?`;
+}
+
+function buildWhatsAppLink(nombre, categoria, precio) {
+    const mensaje = buildProductMessage(nombre, categoria, precio);
     return `https://wa.me/${CONTACT_WHATSAPP}?text=${encodeURIComponent(mensaje)}`;
+}
+
+function buildInstagramLink(nombre, categoria, precio) {
+    const mensaje = buildProductMessage(nombre, categoria, precio);
+    return {
+        href: `${CONTACT_INSTAGRAM_DM}?text=${encodeURIComponent(mensaje)}`,
+        message: mensaje,
+        profile: CONTACT_INSTAGRAM_PROFILE
+    };
 }
 
 function capitalizar(texto = "") {
@@ -148,14 +168,15 @@ async function cargarProductos() {
             item.tabIndex = 0;
             item.setAttribute("role", "button");
             item.setAttribute("aria-label", `Ver ${data.nombre} en grande`);
+            const igLink = buildInstagramLink(data.nombre, capitalizar(categoria), precioVisible);
             item.innerHTML = `
                 <img loading="lazy" class="lazy-img" src="${data.imagen}" alt="${data.nombre}">
                 <div class="item-overlay">
                     <p class="item-nombre">${data.nombre}</p>
                     <p class="item-precio">${precioVisible}</p>
                     <div class="item-cta">
-                        <a class="cta-mini whatsapp" href="${buildWhatsAppLink(data.nombre, categoria)}" target="_blank" rel="noopener noreferrer">Consultar</a>
-                        <a class="cta-mini instagram" href="${CONTACT_INSTAGRAM}" target="_blank" rel="noopener noreferrer">DM</a>
+                        <a class="cta-mini whatsapp" href="${buildWhatsAppLink(data.nombre, capitalizar(categoria), precioVisible)}" target="_blank" rel="noopener noreferrer">Consultar</a>
+                        <a class="cta-mini instagram" data-message="${encodeURIComponent(igLink.message)}" data-profile="${igLink.profile}" href="${igLink.href}" target="_blank" rel="noopener noreferrer">DM</a>
                     </div>
                 </div>
             `;
@@ -177,6 +198,32 @@ async function cargarProductos() {
 
 document.addEventListener("DOMContentLoaded", () => {
     inicializarCategorias();
+});
+
+document.addEventListener("click", (e) => {
+    const igBtn = e.target.closest(".cta-mini.instagram");
+    if (!igBtn) return;
+    const encoded = igBtn.dataset.message || "";
+    if (!encoded) return;
+    const message = decodeURIComponent(encoded);
+    const profileUrl = igBtn.dataset.profile || CONTACT_INSTAGRAM_PROFILE;
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(message).then(() => {
+            const original = igBtn.dataset.originalText || igBtn.textContent;
+            igBtn.dataset.originalText = original;
+            igBtn.textContent = "Mensaje copiado";
+            setTimeout(() => {
+                igBtn.textContent = igBtn.dataset.originalText || original;
+            }, 1500);
+        }).catch(() => {});
+    }
+
+    if (!isMobile && profileUrl) {
+        e.preventDefault();
+        window.open(profileUrl, "_blank", "noopener");
+    }
 });
 
 document.addEventListener("DOMContentLoaded", () => {
