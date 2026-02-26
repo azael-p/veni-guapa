@@ -56,6 +56,46 @@ admin.initializeApp({
 const db = admin.firestore();
 const bucket = admin.storage().bucket();
 
+function resolveStoragePathFromUrl(imageUrl = "") {
+  let filePath = imageUrl;
+  if (filePath.includes("/o/")) {
+    filePath = filePath.split("/o/")[1].split("?")[0];
+  } else if (filePath.includes("/productos/")) {
+    const [, rest] = filePath.split("/productos/");
+    filePath = `productos/${(rest || "").split("?")[0]}`;
+  }
+  return decodeURIComponent(filePath);
+}
+
+async function deleteImageFromUrl(imageUrl = "") {
+  if (!imageUrl) return;
+  try {
+    const filePath = resolveStoragePathFromUrl(imageUrl);
+    if (!filePath) return;
+    const file = bucket.file(filePath);
+    await file.delete();
+    console.log("🧹 Imagen eliminada de Storage:", filePath);
+  } catch (err) {
+    console.warn("⚠️ No se pudo eliminar la imagen (puede no existir):", err.message);
+  }
+}
+
+async function deleteProductDocument(docRef, snapshot) {
+  const snap = snapshot || await docRef.get();
+  if (!snap.exists) {
+    const err = new Error("Producto no encontrado");
+    err.code = "PRODUCT_NOT_FOUND";
+    err.status = 404;
+    throw err;
+  }
+  const data = snap.data() || {};
+  if (data.imagen) {
+    await deleteImageFromUrl(data.imagen);
+  }
+  await docRef.delete();
+  return data;
+}
+
 const DEFAULT_CATEGORIES = ["remeras", "blazers", "pantalones", "vestidos", "accesorios"];
 
 const app = express();
@@ -196,45 +236,13 @@ app.delete("/api/productos/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const docRef = db.collection("productos").doc(id);
-    const doc = await docRef.get();
-
-    if (!doc.exists) {
-      return res.status(404).json({ error: "Producto no encontrado" });
-    }
-
-    const data = doc.data();
-
-    if (data.imagen) {
-      try {
-        let filePath = data.imagen;
-
-        // Si la URL contiene "/o/", extraer lo que viene después (caso típico de getDownloadURL)
-        if (filePath.includes("/o/")) {
-          filePath = filePath.split("/o/")[1].split("?")[0];
-        } else if (filePath.includes("/productos/")) {
-          // Si la URL es del tipo "https://storage.googleapis.com/bucket/productos/...”
-          filePath = filePath.split("/productos/")[1].split("?")[0];
-          filePath = `productos/${filePath}`;
-        }
-
-        filePath = decodeURIComponent(filePath);
-
-        const file = bucket.file(filePath);
-        await file.delete();
-
-        console.log("🧹 Imagen eliminada de Storage:", filePath);
-      } catch (err) {
-        console.warn("⚠️ No se pudo eliminar la imagen (puede no existir):", err.message);
-      }
-    }
-
-    // Eliminar documento de Firestore
-    await docRef.delete();
-
+    await deleteProductDocument(docRef);
     console.log(`✅ Producto ${id} eliminado correctamente`);
     res.json({ mensaje: "Producto eliminado correctamente" });
-
   } catch (error) {
+    if (error.code === "PRODUCT_NOT_FOUND") {
+      return res.status(404).json({ error: "Producto no encontrado" });
+    }
     console.error("❌ Error al eliminar producto:", error);
     res.status(500).json({ error: "Error al eliminar el producto", detalle: error.message });
   }
@@ -283,13 +291,48 @@ app.post("/api/categorias", async (req, res) => {
 app.delete("/api/categorias/:id", async (req, res) => {
   try {
     const { id } = req.params;
+    const cascade = String(req.query.cascade || "").toLowerCase() === "true";
     const ref = db.collection("categorias").doc(id);
     const snap = await ref.get();
     if (!snap.exists) {
       return res.status(404).json({ error: "Categoría no encontrada" });
     }
+
+    const nombre = (snap.data()?.nombre || "").toLowerCase();
+    if (!nombre) {
+      await ref.delete();
+      return res.json({ mensaje: "Categoría eliminada" });
+    }
+
+    const productosSnap = await db.collection("productos").where("categoria", "==", nombre).get();
+    const totalProductos = productosSnap.size;
+
+    if (totalProductos > 0 && !cascade) {
+      return res.status(409).json({
+        error: "La categoría tiene productos asociados",
+        productos: totalProductos
+      });
+    }
+
+    let eliminados = 0;
+    if (totalProductos > 0 && cascade) {
+      for (const doc of productosSnap.docs) {
+        try {
+          await deleteProductDocument(doc.ref, doc);
+          eliminados++;
+        } catch (err) {
+          if (err.code === "PRODUCT_NOT_FOUND") continue;
+          throw err;
+        }
+      }
+    }
+
     await ref.delete();
-    res.json({ mensaje: "Categoría eliminada" });
+    const mensaje = eliminados > 0
+      ? `Categoría eliminada junto con ${eliminados} producto(s)`
+      : "Categoría eliminada";
+
+    res.json({ mensaje, productosEliminados: eliminados });
   } catch (error) {
     console.error("Error eliminando categoría:", error);
     res.status(500).json({ error: "Error al eliminar la categoría" });

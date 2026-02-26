@@ -45,6 +45,19 @@ body::before {
   pointer-events: none;
 }
 
+body::after {
+  content: '';
+  position: fixed;
+  inset: -10% -5%;
+  background:
+    radial-gradient(circle at 20% 25%, rgba(107, 62, 46, 0.45), transparent 60%),
+    radial-gradient(circle at 80% 10%, rgba(212, 163, 115, 0.38), transparent 50%),
+    radial-gradient(circle at 5% 80%, rgba(139, 94, 60, 0.35), transparent 55%);
+  filter: blur(3px);
+  z-index: -2;
+  pointer-events: none;
+}
+
 .overlay-fondo {
   position: fixed;
   top: 0;

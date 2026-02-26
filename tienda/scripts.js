@@ -36,6 +36,12 @@ const db = getFirestore(app);
 const CONTACT_WHATSAPP = "59899999999";
 const CONTACT_INSTAGRAM = "https://www.instagram.com/tiendaveniguapa20";
 const DEFAULT_CATEGORIES = ["remeras", "blazers", "pantalones", "vestidos", "accesorios"];
+const currencyFormatter = new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "ARS",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+});
 
 let categorias = [];
 
@@ -50,6 +56,14 @@ function capitalizar(texto = "") {
 
 function categoriaId(nombre) {
     return nombre.replace(/\s+/g, "-").toLowerCase();
+}
+
+function formatPrice(precio) {
+    const numero = Number(String(precio).replace(/[^\d.,-]/g, "").replace(",", "."));
+    if (Number.isNaN(numero)) {
+        return `$${precio}`;
+    }
+    return currencyFormatter.format(numero);
 }
 
 function renderCategoriasDom(listaCategorias) {
@@ -124,6 +138,7 @@ async function cargarProductos() {
         let delay = 0;
         querySnapshot.forEach((docSnap) => {
             const data = docSnap.data();
+            const precioVisible = formatPrice(data.precio);
             const item = document.createElement("article");
             item.className = "item-galeria";
             item.tabIndex = 0;
@@ -133,7 +148,7 @@ async function cargarProductos() {
                 <img loading="lazy" class="lazy-img" src="${data.imagen}" alt="${data.nombre}">
                 <div class="item-overlay">
                     <p class="item-nombre">${data.nombre}</p>
-                    <p class="item-precio">${data.precio}</p>
+                    <p class="item-precio">${precioVisible}</p>
                     <div class="item-cta">
                         <a class="cta-mini whatsapp" href="${buildWhatsAppLink(data.nombre, categoria)}" target="_blank" rel="noopener noreferrer">Consultar</a>
                         <a class="cta-mini instagram" href="${CONTACT_INSTAGRAM}" target="_blank" rel="noopener noreferrer">DM</a>

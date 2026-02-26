@@ -1,3 +1,9 @@
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
 body {
     font-family: 'Outfit', sans-serif;
     background-color: #fdf6f2;
@@ -13,6 +19,7 @@ h1 {
 
 form {
     max-width: 500px;
+    width: 100%;
     margin: 2rem auto;
     background: white;
     padding: 1.5rem;
@@ -42,6 +49,7 @@ button:hover {
 
 .productos {
     max-width: 700px;
+    width: 100%;
     margin: 2rem auto;
 }
 
@@ -91,6 +99,7 @@ button.eliminar:hover {
 
 .filtro {
     max-width: 500px;
+    width: 100%;
     margin: 1rem auto;
     background: white;
     padding: 1rem;
@@ -111,6 +120,7 @@ button.eliminar:hover {
 
 .panel-categorias {
     max-width: 700px;
+    width: 100%;
     margin: 2rem auto;
     background: white;
     padding: 1.5rem;
@@ -167,6 +177,7 @@ button.eliminar:hover {
 }
 
 .lista-categorias {
+    width: 100%;
     max-height: 300px;
     overflow-y: auto;
     border: 1px solid #f4d8ca;
@@ -181,6 +192,126 @@ button.eliminar:hover {
     background-color: #c94c4c !important;
     border: none;
     margin-left: 0.8rem;
+}
+
+.toast-root {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    z-index: 2000;
+    pointer-events: none;
+}
+
+.toast {
+    min-width: 240px;
+    max-width: min(360px, 90vw);
+    padding: 0.9rem 1.1rem;
+    border-radius: 12px;
+    background: #fff;
+    color: #553322;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+    opacity: 0;
+    transform: translateY(-15px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    pointer-events: auto;
+}
+
+.toast.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast--success {
+    border-left: 6px solid #4caf50;
+}
+
+.toast--error {
+    border-left: 6px solid #e53935;
+}
+
+.toast--warning {
+    border-left: 6px solid #ffa726;
+}
+
+.toast--info {
+    border-left: 6px solid #42a5f5;
+}
+
+.confirm-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    z-index: 1900;
+    padding: 1.5rem;
+}
+
+.confirm-modal.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.confirm-dialog {
+    background: white;
+    padding: 1.6rem;
+    border-radius: 16px;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+}
+
+.confirm-dialog p {
+    margin: 0;
+    color: #533529;
+    line-height: 1.4;
+}
+
+.confirm-actions {
+    margin-top: 1.3rem;
+    display: flex;
+    gap: 0.8rem;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.confirm-actions button {
+    width: auto;
+    min-width: 120px;
+}
+
+.btn-primary,
+.btn-secondary {
+    width: auto;
+    border: none;
+    cursor: pointer;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.btn-primary {
+    background: #c94c4c;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #a83939;
+}
+
+.btn-secondary {
+    background: #f1ded2;
+    color: #6b3e2e;
+}
+
+.btn-secondary:hover {
+    background: #e4c9b9;
 }
 
 @media (max-width: 900px) {
@@ -234,5 +365,17 @@ button.eliminar:hover {
 
     .form-categoria__row {
         flex-direction: column;
+    }
+
+    .toast-root {
+        top: auto;
+        bottom: 1rem;
+        left: 1rem;
+        right: 1rem;
+        align-items: stretch;
+    }
+
+    .toast {
+        max-width: 100%;
     }
 }

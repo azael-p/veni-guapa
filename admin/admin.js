@@ -28,6 +28,69 @@ function ensureAuth() {
     }
 }
 ensureAuth();
+
+const toastRoot = document.getElementById("toast-root");
+function showToast(message, type = "info", { duration = 3500 } = {}) {
+    if (!toastRoot) {
+        window.alert(message);
+        return;
+    }
+    const toast = document.createElement("div");
+    toast.className = `toast toast--${type}`;
+    toast.textContent = message;
+    toastRoot.appendChild(toast);
+
+    requestAnimationFrame(() => toast.classList.add("is-visible"));
+
+    setTimeout(() => {
+        toast.classList.remove("is-visible");
+        setTimeout(() => toast.remove(), 200);
+    }, duration);
+}
+
+const confirmModal = document.getElementById("confirm-modal");
+const confirmMessage = document.getElementById("confirm-message");
+const confirmAcceptBtn = confirmModal?.querySelector('[data-confirm="accept"]') || null;
+const confirmCancelBtn = confirmModal?.querySelector('[data-confirm="cancel"]') || null;
+
+function showConfirm(message, { confirmText = "Aceptar", cancelText = "Cancelar" } = {}) {
+    if (!confirmModal || !confirmMessage || !confirmAcceptBtn || !confirmCancelBtn) {
+        return Promise.resolve(window.confirm(message));
+    }
+
+    confirmMessage.textContent = message;
+    confirmAcceptBtn.textContent = confirmText;
+    confirmCancelBtn.textContent = cancelText;
+    confirmModal.classList.add("is-visible");
+    confirmModal.setAttribute("aria-hidden", "false");
+
+    return new Promise((resolve) => {
+        const cleanup = (result) => {
+            confirmModal.classList.remove("is-visible");
+            confirmModal.setAttribute("aria-hidden", "true");
+            confirmAcceptBtn.removeEventListener("click", onAccept);
+            confirmCancelBtn.removeEventListener("click", onCancel);
+            confirmModal.removeEventListener("click", onBackdrop);
+            document.removeEventListener("keydown", onKey);
+            resolve(result);
+        };
+
+        const onAccept = () => cleanup(true);
+        const onCancel = () => cleanup(false);
+        const onBackdrop = (e) => {
+            if (e.target === confirmModal) cleanup(false);
+        };
+        const onKey = (e) => {
+            if (e.key === "Escape") cleanup(false);
+        };
+
+        confirmAcceptBtn.addEventListener("click", onAccept);
+        confirmCancelBtn.addEventListener("click", onCancel);
+        confirmModal.addEventListener("click", onBackdrop);
+        document.addEventListener("keydown", onKey);
+    });
+}
+
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 // Exponer para otros módulos/scripts si hiciera falta
@@ -53,7 +116,7 @@ form.addEventListener("submit", async (e) => {
     const imagen = document.getElementById("imagen").files[0];
 
     if (!imagen) {
-        alert("Seleccioná una imagen antes de continuar");
+        showToast("Seleccioná una imagen antes de continuar", "warning");
         return;
     }
 
@@ -71,7 +134,7 @@ form.addEventListener("submit", async (e) => {
         });
 
         if (respuesta.status === 401) {
-            alert('🔒 No autorizado. Ingresá de nuevo.');
+            showToast('🔒 No autorizado. Ingresá de nuevo.', "error");
             localStorage.removeItem(ADMIN_TOKEN_KEY);
             window.location.href = '/admin/login.html';
             return;
@@ -84,14 +147,14 @@ form.addEventListener("submit", async (e) => {
         } catch (_) { }
 
         if (respuesta.ok) {
-            alert(data.mensaje || "✅ Producto subido con éxito");
+            showToast(data.mensaje || "✅ Producto subido con éxito", "success");
             form.reset();
         } else {
-            alert("⚠️ Error al subir producto: " + (data.error || `HTTP ${respuesta.status}`));
+            showToast("⚠️ Error al subir producto: " + (data.error || `HTTP ${respuesta.status}`), "error");
         }
     } catch (error) {
         console.error("Error:", error);
-        alert("❌ No se pudo conectar con el servidor");
+        showToast("❌ No se pudo conectar con el servidor", "error");
     }
 });
 
@@ -164,7 +227,11 @@ function cargarProductos(filtro = "todas") {
 document.addEventListener("click", async (e) => {
     if (e.target.classList.contains("eliminar")) {
         const id = e.target.dataset.id;
-        if (!confirm("¿Seguro que querés eliminar este producto?")) return;
+        const confirmado = await showConfirm("¿Seguro que querés eliminar este producto?", {
+            confirmText: "Eliminar",
+            cancelText: "Cancelar"
+        });
+        if (!confirmado) return;
 
         try {
             const res = await fetch(`${SERVER_URL}/api/productos/${id}`, {
@@ -173,7 +240,7 @@ document.addEventListener("click", async (e) => {
             });
 
             if (res.status === 401) {
-                alert('🔒 No autorizado. Ingresá de nuevo.');
+                showToast('🔒 No autorizado. Ingresá de nuevo.', "error");
                 localStorage.removeItem(ADMIN_TOKEN_KEY);
                 window.location.href = '/admin/login.html';
                 return;
@@ -183,14 +250,14 @@ document.addEventListener("click", async (e) => {
 
             if (!res.ok) {
                 const msg = payload.error || payload.mensaje || `HTTP ${res.status}`;
-                alert(`⚠️ No se pudo eliminar el producto: ${msg}`);
+                showToast(`⚠️ No se pudo eliminar el producto: ${msg}`, "warning");
                 return;
             }
 
-            alert(payload.mensaje || "Producto eliminado correctamente");
+            showToast(payload.mensaje || "Producto eliminado correctamente", "success");
         } catch (err) {
             console.error("Error eliminando producto:", err);
-            alert("❌ No se pudo conectar con el servidor. Intentá nuevamente.");
+            showToast("❌ No se pudo conectar con el servidor. Intentá nuevamente.", "error");
         }
     }
 });
@@ -253,7 +320,10 @@ async function cargarCategorias() {
 formCategoria?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const nombre = (inputNuevaCategoria?.value || "").trim().toLowerCase();
-    if (!nombre) return alert("Ingresá un nombre de categoría");
+    if (!nombre) {
+        showToast("Ingresá un nombre de categoría", "warning");
+        return;
+    }
 
     try {
         const res = await fetch(`${SERVER_URL}/api/categorias`, {
@@ -268,17 +338,28 @@ formCategoria?.addEventListener("submit", async (e) => {
         const data = await res.json().catch(() => ({}));
 
         if (!res.ok) {
-            alert(data.error || "No se pudo crear la categoría");
+            showToast(data.error || "No se pudo crear la categoría", "error");
             return;
         }
 
         formCategoria.reset();
+        showToast("Categoría creada", "success");
         await cargarCategorias();
     } catch (error) {
         console.error(error);
-        alert("❌ Error al crear la categoría");
+        showToast("❌ Error al crear la categoría", "error");
     }
 });
+
+async function eliminarCategoriaRequest(id, { cascade = false } = {}) {
+    const param = cascade ? "?cascade=true" : "";
+    const res = await fetch(`${SERVER_URL}/api/categorias/${id}${param}`, {
+        method: "DELETE",
+        headers: adminHeaders()
+    });
+    const data = await res.json().catch(() => ({}));
+    return { res, data };
+}
 
 listaCategorias?.addEventListener("click", async (e) => {
     const btn = e.target.closest(".btn-eliminar-cat");
@@ -288,24 +369,51 @@ listaCategorias?.addEventListener("click", async (e) => {
     const nombre = btn.dataset.nombre || "";
 
     if (!id) return;
-    if (!confirm(`¿Eliminar la categoría "${capitalizar(nombre)}"?`)) return;
+    const confirmed = await showConfirm(`¿Eliminar la categoría "${capitalizar(nombre)}"?`, {
+        confirmText: "Eliminar",
+        cancelText: "Cancelar"
+    });
+    if (!confirmed) return;
 
     try {
-        const res = await fetch(`${SERVER_URL}/api/categorias/${id}`, {
-            method: "DELETE",
-            headers: adminHeaders()
-        });
-        const data = await res.json().catch(() => ({}));
+        const { res, data } = await eliminarCategoriaRequest(id);
 
-        if (!res.ok) {
-            alert(data.error || "No se pudo eliminar la categoría");
+        if (res.ok) {
+            showToast(data.mensaje || "Categoría eliminada", "success");
+            await cargarCategorias();
             return;
         }
 
-        await cargarCategorias();
+        if (res.status === 409 && data.productos) {
+            const confirmarCascade = await showConfirm(
+                `La categoría "${capitalizar(nombre)}" tiene ${data.productos} producto(s). ` +
+                `Si continuás, se eliminarán esos productos y sus imágenes. ¿Deseás continuar?`,
+                { confirmText: "Eliminar todo", cancelText: "Cancelar" }
+            );
+            if (!confirmarCascade) return;
+
+            const cascada = await eliminarCategoriaRequest(id, { cascade: true });
+            if (cascada.res.ok) {
+                showToast(cascada.data.mensaje || "Categoría y productos eliminados", "success");
+                await cargarCategorias();
+                return;
+            }
+
+            showToast(cascada.data.error || "No se pudo eliminar la categoría", "error");
+            return;
+        }
+
+        if (res.status === 401) {
+            showToast('🔒 No autorizado. Ingresá de nuevo.', "error");
+            localStorage.removeItem(ADMIN_TOKEN_KEY);
+            window.location.href = '/admin/login.html';
+            return;
+        }
+
+        showToast(data.error || "No se pudo eliminar la categoría", "error");
     } catch (error) {
         console.error(error);
-        alert("❌ Error al eliminar la categoría");
+        showToast("❌ Error al eliminar la categoría", "error");
     }
 });
 
@@ -322,6 +430,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         cargarProductos();
     } catch (err) {
         console.error("Error al iniciar panel:", err);
-        alert("❌ Error al iniciar el panel. Revisá la conexión.");
+        showToast("❌ Error al iniciar el panel. Revisá la conexión.", "error");
     }
 });

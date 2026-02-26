@@ -65,6 +65,18 @@
 
     <div class="productos" id="listaProductos"></div>
 
+    <div id="toast-root" class="toast-root" aria-live="polite"></div>
+
+    <div id="confirm-modal" class="confirm-modal" aria-hidden="true">
+        <div class="confirm-dialog">
+            <p id="confirm-message"></p>
+            <div class="confirm-actions">
+                <button type="button" class="btn-secondary" data-confirm="cancel">Cancelar</button>
+                <button type="button" class="btn-primary" data-confirm="accept">Continuar</button>
+            </div>
+        </div>
+    </div>
+
     <script>
 const inputImagen = document.getElementById("imagen");
 const previewImg = document.getElementById("preview-img");
