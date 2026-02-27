@@ -364,6 +364,7 @@ function pluralizarProductos(total) {
 }
 
 let unsubscribeProductos = null;
+let categoriasLista = [];
 
 function cargarProductos(filtro = filtroActual) {
     filtroActual = filtro;
@@ -430,7 +431,7 @@ function cargarProductos(filtro = filtroActual) {
                             <span class="producto-meta">${escapeHtml(capitalizar(categoriaLabel || ""))}</span>
                         </div>
                         <div class="producto-acciones">
-                            <button class="editar" data-id="${escapeHtml(id)}" data-nombre="${escapeHtml(nombre)}" data-precio="${escapeHtml(precio)}">Editar</button>
+                            <button class="editar" data-id="${escapeHtml(id)}" data-nombre="${escapeHtml(nombre)}" data-precio="${escapeHtml(precio)}" data-categoria="${escapeHtml(categoriaLabel || "")}">Editar</button>
                             <button class="eliminar" data-id="${escapeHtml(id)}">Eliminar</button>
                         </div>
                     `;
@@ -578,10 +579,11 @@ async function cargarCategorias() {
     try {
         const categorias = await fetchCategoriasApi();
         listaCategorias.innerHTML = "";
+        categoriasLista = categorias;
         categoriasDisponibles = categorias.map(cat => cat.nombre);
         actualizarBatchCategorias();
 
-        categorias.forEach(cat => {
+        categorias.forEach((cat, index) => {
             const option = document.createElement("option");
             option.value = cat.nombre;
             option.textContent = capitalizar(cat.nombre);
@@ -593,7 +595,11 @@ async function cargarCategorias() {
             const li = document.createElement("li");
             li.innerHTML = `
                 <span>${capitalizar(cat.nombre)}</span>
-                <button type="button" class="btn-eliminar-cat" data-id="${cat.id}" data-nombre="${cat.nombre}">Eliminar</button>
+                <div class="cat-acciones">
+                    <button type="button" class="btn-reordenar-cat" data-index="${index}" data-dir="up" ${index === 0 ? "disabled" : ""}>↑</button>
+                    <button type="button" class="btn-reordenar-cat" data-index="${index}" data-dir="down" ${index === categorias.length - 1 ? "disabled" : ""}>↓</button>
+                    <button type="button" class="btn-eliminar-cat" data-id="${cat.id}" data-nombre="${cat.nombre}">Eliminar</button>
+                </div>
             `;
             listaCategorias.appendChild(li);
         });
@@ -652,6 +658,35 @@ async function eliminarCategoriaRequest(id, { cascade = false } = {}) {
 }
 
 listaCategorias?.addEventListener("click", async (e) => {
+    const reordBtn = e.target.closest(".btn-reordenar-cat");
+    if (reordBtn) {
+        const index = parseInt(reordBtn.dataset.index, 10);
+        const dir = reordBtn.dataset.dir;
+        const swapIndex = dir === "up" ? index - 1 : index + 1;
+        if (swapIndex < 0 || swapIndex >= categoriasLista.length) return;
+
+        // Construir la lista con el swap aplicado
+        const newList = [...categoriasLista];
+        [newList[index], newList[swapIndex]] = [newList[swapIndex], newList[index]];
+
+        try {
+            // Reasignar orden a TODAS las categorías según su nueva posición
+            // Esto normaliza categorías que no tenían campo orden y evita inconsistencias
+            await Promise.all(newList.map((cat, i) =>
+                fetch(`${SERVER_URL}/api/categorias/${cat.id}`, {
+                    method: "PATCH",
+                    headers: { ...adminHeaders(), "Content-Type": "application/json" },
+                    body: JSON.stringify({ orden: i })
+                })
+            ));
+            await cargarCategorias();
+        } catch (err) {
+            console.error("Error reordenando:", err);
+            showToast("❌ Error al reordenar la categoría", "error");
+        }
+        return;
+    }
+
     const btn = e.target.closest(".btn-eliminar-cat");
     if (!btn) return;
 
@@ -738,12 +773,27 @@ async function eliminarProductoApi(id) {
 const editModal = document.getElementById("edit-modal");
 const editNombreInput = document.getElementById("editNombre");
 const editPrecioInput = document.getElementById("editPrecio");
+const editCategoriaSelect = document.getElementById("editCategoria");
 
-function showEditModal({ nombre, precio }) {
+function showEditModal({ nombre, precio, categoria }) {
     if (!editModal || !editNombreInput || !editPrecioInput) return Promise.resolve(null);
 
     editNombreInput.value = nombre || "";
     editPrecioInput.value = precio || "";
+
+    if (editCategoriaSelect) {
+        editCategoriaSelect.innerHTML = "";
+        categoriasDisponibles.forEach((cat) => {
+            const opt = document.createElement("option");
+            opt.value = cat;
+            opt.textContent = capitalizar(cat);
+            editCategoriaSelect.appendChild(opt);
+        });
+        if (categoria && categoriasDisponibles.includes(categoria)) {
+            editCategoriaSelect.value = categoria;
+        }
+    }
+
     editModal.classList.add("is-visible");
     editModal.setAttribute("aria-hidden", "false");
 
@@ -766,11 +816,12 @@ function showEditModal({ nombre, precio }) {
         const onSave = () => {
             const nuevoNombre = editNombreInput.value.trim();
             const nuevoPrecio = editPrecioInput.value.trim();
+            const nuevaCategoria = editCategoriaSelect?.value || "";
             if (!nuevoNombre || !nuevoPrecio) {
                 showToast("Nombre y precio son requeridos", "warning");
                 return;
             }
-            cleanup({ nombre: nuevoNombre, precio: nuevoPrecio });
+            cleanup({ nombre: nuevoNombre, precio: nuevoPrecio, categoria: nuevaCategoria });
         };
         const onCancel = () => cleanup(null);
         const onBackdrop = (e) => { if (e.target === editModal) cleanup(null); };
@@ -786,12 +837,14 @@ function showEditModal({ nombre, precio }) {
     });
 }
 
-async function editarProductoApi(id, nombre, precio) {
+async function editarProductoApi(id, nombre, precio, categoria) {
     try {
+        const body = { nombre, precio };
+        if (categoria) body.categoria = categoria;
         const res = await fetch(`${SERVER_URL}/api/productos/${id}`, {
             method: "PATCH",
             headers: { ...adminHeaders(), "Content-Type": "application/json" },
-            body: JSON.stringify({ nombre, precio })
+            body: JSON.stringify(body)
         });
 
         if (res.status === 401) {
@@ -819,11 +872,12 @@ document.addEventListener("click", async (e) => {
     const id = btn.dataset.id;
     const nombre = btn.dataset.nombre;
     const precio = btn.dataset.precio;
+    const categoria = btn.dataset.categoria;
 
-    const resultado = await showEditModal({ nombre, precio });
+    const resultado = await showEditModal({ nombre, precio, categoria });
     if (!resultado) return;
 
-    const apiResult = await editarProductoApi(id, resultado.nombre, resultado.precio);
+    const apiResult = await editarProductoApi(id, resultado.nombre, resultado.precio, resultado.categoria);
     if (apiResult?.status === "unauth") return;
 
     if (apiResult.ok) {

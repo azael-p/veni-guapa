@@ -215,8 +215,11 @@ function resetCarruseles() {
 async function obtenerCategorias() {
     try {
         const snapshot = await getDocs(collection(db, "categorias"));
-        const catDocs = snapshot.docs.map((doc) => doc.data().nombre).filter(Boolean);
-        if (catDocs.length) return catDocs;
+        const catDocs = snapshot.docs
+            .map((doc) => ({ nombre: doc.data().nombre, orden: doc.data().orden ?? 9999 }))
+            .filter((c) => c.nombre);
+        catDocs.sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre));
+        if (catDocs.length) return catDocs.map((c) => c.nombre);
     } catch (error) {
         console.error("No se pudieron cargar categorías dinámicas", error);
     }
@@ -230,6 +233,22 @@ async function inicializarCategorias() {
 }
 
 const LIMITE_PRODUCTOS = 12;
+
+function renderSkeletons(galeria, count = 4) {
+    galeria.innerHTML = "";
+    for (let i = 0; i < count; i++) {
+        const item = document.createElement("article");
+        item.className = "item-galeria skeleton-item";
+        item.innerHTML = `
+            <div class="skeleton-img"></div>
+            <div class="skeleton-info">
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line short"></div>
+            </div>
+        `;
+        galeria.appendChild(item);
+    }
+}
 
 // Renderiza un artículo y lo agrega a la galería
 function renderItem(galeria, data, categoria, delaySegundos) {
@@ -309,6 +328,12 @@ function agregarBotonVerMas(inner, galeria, categoria, lastDoc) {
 async function cargarProductos() {
     if (!categorias.length) return;
     for (const categoria of categorias) {
+        const contenedorPrev = document.getElementById(categoriaId(categoria));
+        if (contenedorPrev) {
+            const galeriaPrev = contenedorPrev.querySelector(".galeria-imagenes");
+            if (galeriaPrev) renderSkeletons(galeriaPrev, 4);
+        }
+
         const q = query(
             collection(db, "productos"),
             where("categoria", "==", categoria),
@@ -323,7 +348,7 @@ async function cargarProductos() {
             const galeria = contenedor.querySelector(".galeria-imagenes");
             if (!galeria || !inner) return;
 
-            // Limpiar galería y botón "Ver más" anterior
+            // Limpiar galería (skeletons y botón "Ver más" anterior)
             galeria.innerHTML = "";
             inner.querySelector(".btn-ver-mas")?.remove();
 
