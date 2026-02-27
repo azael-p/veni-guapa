@@ -382,12 +382,14 @@ section {
 .galeria-imagenes {
   display: flex;
   overflow-x: auto;
+  overflow-y: hidden;
   scroll-behavior: smooth;
   gap: 1.5rem;
   padding: 1rem 0.5rem;
   scroll-snap-type: x mandatory;
   width: 100%;
   scrollbar-width: none;
+  touch-action: pan-x;
 }
 
 .galeria-imagenes::-webkit-scrollbar {
