@@ -8,14 +8,31 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // --- Carruseles: navegación con flechas ---
+function updateFlechas(galeria) {
+    const carrusel = galeria.closest(".carrusel");
+    if (!carrusel) return;
+    const btnIzq = carrusel.querySelector(".flecha.izquierda");
+    const btnDer = carrusel.querySelector(".flecha.derecha");
+    const atStart = galeria.scrollLeft <= 2;
+    const atEnd = galeria.scrollLeft + galeria.clientWidth >= galeria.scrollWidth - 2;
+    if (btnIzq) btnIzq.disabled = atStart;
+    if (btnDer) btnDer.disabled = atEnd;
+}
+
+document.addEventListener("scroll", (e) => {
+    if (e.target.classList && e.target.classList.contains("galeria-imagenes")) {
+        updateFlechas(e.target);
+    }
+}, true);
+
 document.addEventListener("click", (e) => {
-    if (e.target.classList.contains("flecha")) {
-        const carrusel = e.target.closest(".carrusel").querySelector(".galeria-imagenes");
-        const scrollAmount = carrusel.clientWidth * 0.9;
+    if (e.target.classList.contains("flecha") && !e.target.disabled) {
+        const galeria = e.target.closest(".carrusel").querySelector(".galeria-imagenes");
+        const scrollAmount = galeria.clientWidth * 0.9;
         if (e.target.classList.contains("izquierda")) {
-            carrusel.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+            galeria.scrollBy({ left: -scrollAmount, behavior: "smooth" });
         } else {
-            carrusel.scrollBy({ left: scrollAmount, behavior: "smooth" });
+            galeria.scrollBy({ left: scrollAmount, behavior: "smooth" });
         }
     }
 });
@@ -323,6 +340,7 @@ async function cargarMasProductos(galeria, inner, categoria, lastDoc) {
         snapshot.forEach((docSnap, i) => {
             renderItem(galeria, docSnap.data(), categoria, (offset + i) * 0.05);
         });
+        updateFlechas(galeria);
 
         if (snapshot.size >= LIMITE_PRODUCTOS) {
             const newLast = snapshot.docs[snapshot.docs.length - 1];
@@ -383,6 +401,7 @@ async function cargarProductos() {
             querySnapshot.forEach((docSnap, i) => {
                 renderItem(galeria, docSnap.data(), categoria, i * 0.05);
             });
+            updateFlechas(galeria);
 
             if (querySnapshot.size >= LIMITE_PRODUCTOS) {
                 const lastDoc = querySnapshot.docs[querySnapshot.docs.length - 1];

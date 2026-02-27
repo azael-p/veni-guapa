@@ -567,6 +567,12 @@ section {
 .flecha.izquierda { left: 0; }
 .flecha.derecha { right: 0; }
 
+.flecha:disabled {
+  opacity: 0.2;
+  cursor: default;
+  pointer-events: none;
+}
+
 /* Sección Contacto */
 #contacto {
   text-align: center;
