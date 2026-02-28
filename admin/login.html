@@ -52,22 +52,51 @@
     const mensaje = document.getElementById("mensaje");
     const input = document.getElementById("password");
 
-    function doLogin() {
+    const host = window.location.hostname;
+    const isLocal = host === 'localhost' || host === '127.0.0.1';
+    const SERVER_URL = isLocal ? 'http://localhost:3000' : window.location.origin;
+
+    async function doLogin() {
         const pass = input.value.trim();
         if (!pass) {
             mensaje.textContent = "Ingresá la clave de administración.";
             return;
         }
-        // Guardar clave para que admin.js la envíe como 'x-admin-key'
-        localStorage.setItem('vg_admin_key', pass);
-        // Flag de sesión (tu chequeo actual)
-        sessionStorage.setItem('autorizado', 'true');
-        // Ir al panel
-        window.location.href = 'admin.html';
+
+        loginBtn.disabled = true;
+        mensaje.style.color = "";
+        mensaje.textContent = "Verificando...";
+
+        try {
+            const res = await fetch(`${SERVER_URL}/api/auth/verify`, {
+                headers: { 'x-admin-key': pass }
+            });
+
+            if (res.status === 401) {
+                mensaje.style.color = "red";
+                mensaje.textContent = "Clave incorrecta. Intentá de nuevo.";
+                input.select();
+                return;
+            }
+
+            if (!res.ok) {
+                mensaje.style.color = "red";
+                mensaje.textContent = "Error al conectar con el servidor.";
+                return;
+            }
+
+            // Clave válida: guardar y redirigir
+            localStorage.setItem('vg_admin_key', pass);
+            window.location.href = 'admin.html';
+        } catch (_) {
+            mensaje.style.color = "red";
+            mensaje.textContent = "No se pudo conectar con el servidor.";
+        } finally {
+            loginBtn.disabled = false;
+        }
     }
 
     loginBtn.addEventListener('click', doLogin);
-      // Permitir Enter para enviar
     input.addEventListener('keyup', (e) => {
         if (e.key === 'Enter') doLogin();
     });

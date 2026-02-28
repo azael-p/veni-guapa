@@ -168,6 +168,15 @@ app.use("/api", (req, res, next) => {
   next();
 });
 
+// Verificar clave de administración
+app.get("/api/auth/verify", (req, res) => {
+  const key = req.header("x-admin-key") || "";
+  if (key !== ADMIN_KEY) {
+    return res.status(401).json({ ok: false, error: "Clave incorrecta" });
+  }
+  res.status(200).json({ ok: true });
+});
+
 // Health check rápido (no toca Firebase)
 app.get("/healthz", (_req, res) => {
   res.status(200).json({
