@@ -52,10 +52,6 @@
     const mensaje = document.getElementById("mensaje");
     const input = document.getElementById("password");
 
-    const host = window.location.hostname;
-    const isLocal = host === 'localhost' || host === '127.0.0.1';
-    const SERVER_URL = isLocal ? 'http://localhost:3000' : window.location.origin;
-
     async function doLogin() {
         const pass = input.value.trim();
         if (!pass) {
@@ -67,10 +63,15 @@
         mensaje.style.color = "";
         mensaje.textContent = "Verificando...";
 
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000);
+
         try {
-            const res = await fetch(`${SERVER_URL}/api/auth/verify`, {
-                headers: { 'x-admin-key': pass }
+            const res = await fetch('/api/auth/verify', {
+                headers: { 'x-admin-key': pass },
+                signal: controller.signal
             });
+            clearTimeout(timeout);
 
             if (res.status === 401) {
                 mensaje.style.color = "red";
@@ -88,9 +89,12 @@
             // Clave válida: guardar y redirigir
             localStorage.setItem('vg_admin_key', pass);
             window.location.href = 'admin.html';
-        } catch (_) {
+        } catch (err) {
+            clearTimeout(timeout);
             mensaje.style.color = "red";
-            mensaje.textContent = "No se pudo conectar con el servidor.";
+            mensaje.textContent = err.name === 'AbortError'
+                ? "El servidor tardó demasiado. Intentá de nuevo."
+                : "No se pudo conectar con el servidor.";
         } finally {
             loginBtn.disabled = false;
         }
