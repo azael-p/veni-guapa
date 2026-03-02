@@ -97,7 +97,7 @@ async function deleteProductDocument(docRef, snapshot) {
 }
 
 const app = express();
-const ADMIN_KEY = process.env.ADMIN_KEY || "CAMBIA-ESTA-CLAVE";
+const ADMIN_KEY = (process.env.ADMIN_KEY || "CAMBIA-ESTA-CLAVE").trim();
 // 🔒 CORS restringido a orígenes permitidos
 const ALLOWED_ORIGINS = new Set([
   "http://localhost:3000",
@@ -170,7 +170,7 @@ app.use("/api", (req, res, next) => {
 
 // Verificar clave de administración
 app.get("/api/auth/verify", (req, res) => {
-  const key = req.header("x-admin-key") || "";
+  const key = (req.header("x-admin-key") || "").trim();
   if (key !== ADMIN_KEY) {
     return res.status(401).json({ ok: false, error: "Clave incorrecta" });
   }

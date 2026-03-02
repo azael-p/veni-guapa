@@ -9,9 +9,8 @@
 <body>
 
     <script>
-        // Verificar si el usuario está autorizado, si no, redirigir al login
-        if (sessionStorage.getItem("autorizado") !== "true") {
-        window.location.href = "login.html";
+        if (!localStorage.getItem("vg_admin_key")) {
+            window.location.href = "login.html";
         }
     </script>
 

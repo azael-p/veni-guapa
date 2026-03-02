@@ -80,21 +80,15 @@
                 return;
             }
 
-            if (!res.ok) {
-                mensaje.style.color = "red";
-                mensaje.textContent = "Error al conectar con el servidor.";
-                return;
-            }
-
-            // Clave válida: guardar y redirigir
+            // Cualquier otra respuesta (200, 404, 403, etc.) → dejar pasar
+            // El servidor validará la clave en cada operación protegida
             localStorage.setItem('vg_admin_key', pass);
             window.location.href = 'admin.html';
         } catch (err) {
             clearTimeout(timeout);
-            mensaje.style.color = "red";
-            mensaje.textContent = err.name === 'AbortError'
-                ? "El servidor tardó demasiado. Intentá de nuevo."
-                : "No se pudo conectar con el servidor.";
+            // Error de red o timeout → dejar pasar igual
+            localStorage.setItem('vg_admin_key', pass);
+            window.location.href = 'admin.html';
         } finally {
             loginBtn.disabled = false;
         }
