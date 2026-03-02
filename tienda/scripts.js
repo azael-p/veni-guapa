@@ -152,6 +152,10 @@ function applyStaticContent() {
     if (about && siteContent?.aboutText) {
         about.textContent = siteContent.aboutText;
     }
+    const contactDesc = document.getElementById("contactDescription");
+    if (contactDesc && siteContent?.contactDescription) {
+        contactDesc.textContent = siteContent.contactDescription;
+    }
 
     const heroWhatsapp = document.getElementById("heroWhatsappBtn");
     if (heroWhatsapp) {

@@ -9,7 +9,10 @@ export const siteContent = {
   
     aboutText:
     "Somos una tienda de ropa pensada para mujeres con personalidad. En Vení Guapa combinamos estilo, tendencia y cercanía.",
-  
+
+  contactDescription:
+    "Atendemos pedidos de manera personalizada para asegurarnos de que cada prenda llegue perfecta. En tu mensaje contanos qué categoría y nombre viste en la galería así agilizamos todo.",
+
     contact: {
       
     whatsapp: {
