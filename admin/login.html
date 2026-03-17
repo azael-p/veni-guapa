@@ -80,15 +80,20 @@
                 return;
             }
 
-            // Cualquier otra respuesta (200, 404, 403, etc.) → dejar pasar
-            // El servidor validará la clave en cada operación protegida
+            if (!res.ok) {
+                mensaje.style.color = "red";
+                mensaje.textContent = "Error del servidor. Intentá más tarde.";
+                return;
+            }
+
             localStorage.setItem('vg_admin_key', pass);
             window.location.href = 'admin.html';
         } catch (err) {
             clearTimeout(timeout);
-            // Error de red o timeout → dejar pasar igual
-            localStorage.setItem('vg_admin_key', pass);
-            window.location.href = 'admin.html';
+            mensaje.style.color = "red";
+            mensaje.textContent = err.name === "AbortError"
+                ? "Tiempo de espera agotado. Revisá tu conexión."
+                : "No se pudo conectar con el servidor.";
         } finally {
             loginBtn.disabled = false;
         }

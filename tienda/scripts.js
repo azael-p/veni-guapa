@@ -83,6 +83,7 @@ const currencyFormatter = new Intl.NumberFormat("es-AR", {
 });
 
 let categorias = [];
+let unsubscribeProductos = [];
 
 function buildProductMessage(nombre, categoria, precio = "") {
     const tienda = siteContent?.storeName || "la tienda";
@@ -370,6 +371,11 @@ function agregarBotonVerMas(inner, galeria, categoria, lastDoc) {
 // --- Cargar productos desde Firebase ---
 async function cargarProductos() {
     if (!categorias.length) return;
+
+    // Cancelar listeners anteriores antes de crear nuevos
+    unsubscribeProductos.forEach(unsub => unsub());
+    unsubscribeProductos = [];
+
     for (const categoria of categorias) {
         const contenedorPrev = document.getElementById(categoriaId(categoria));
         if (contenedorPrev) {
@@ -384,7 +390,7 @@ async function cargarProductos() {
             limit(LIMITE_PRODUCTOS)
         );
 
-        onSnapshot(q, (querySnapshot) => {
+        const unsub = onSnapshot(q, (querySnapshot) => {
             const contenedor = document.getElementById(categoriaId(categoria));
             if (!contenedor) return;
             const inner = contenedor.querySelector(".carrusel-inner");
@@ -419,6 +425,7 @@ async function cargarProductos() {
             const galeria = contenedor.querySelector(".galeria-imagenes");
             if (galeria) galeria.innerHTML = `<p class="empty-state">Error al cargar productos.</p>`;
         });
+        unsubscribeProductos.push(unsub);
     }
 }
 
