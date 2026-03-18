@@ -1,3 +1,15 @@
+/**
+ * server.js — Backend principal de Veni Guapa
+ *
+ * Servidor Express que cumple tres roles:
+ *   1. Sirve el frontend de la tienda (tienda/) y el panel admin (admin/)
+ *   2. Expone una API REST para gestión de productos y categorías
+ *   3. Maneja la subida de imágenes (Multer → Sharp → Firebase Storage)
+ *
+ * Autenticación: las rutas que modifican datos (POST/DELETE/PATCH)
+ * requieren el header "x-admin-key" con el valor definido en ADMIN_KEY (.env).
+ */
+
 import express from "express";
 import cors from "cors";
 import multer from "multer";
@@ -9,6 +21,7 @@ import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 dotenv.config();
 
+// Necesario para usar __dirname con módulos ES (import/export en lugar de require)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const NODE_ENV = process.env.NODE_ENV || 'development';
@@ -56,6 +69,11 @@ admin.initializeApp({
 const db = admin.firestore();
 const bucket = admin.storage().bucket();
 
+/**
+ * Convierte la URL pública de una imagen de Firebase Storage en el path
+ * interno del archivo dentro del bucket (ej: "productos/foto-123.webp").
+ * Soporta tanto URLs del formato /o/ (API REST de Storage) como URLs directas.
+ */
 function resolveStoragePathFromUrl(imageUrl = "") {
   let filePath = imageUrl;
   if (filePath.includes("/o/")) {
@@ -67,6 +85,10 @@ function resolveStoragePathFromUrl(imageUrl = "") {
   return decodeURIComponent(filePath);
 }
 
+/**
+ * Elimina una imagen de Firebase Storage a partir de su URL pública.
+ * No lanza error si el archivo no existe (puede ya haber sido eliminado).
+ */
 async function deleteImageFromUrl(imageUrl = "") {
   if (!imageUrl) return;
   try {
@@ -80,6 +102,11 @@ async function deleteImageFromUrl(imageUrl = "") {
   }
 }
 
+/**
+ * Elimina un documento de producto de Firestore y su imagen asociada en Storage.
+ * Acepta opcionalmente el snapshot ya cargado para evitar una lectura extra.
+ * Lanza un error con code "PRODUCT_NOT_FOUND" si el documento no existe.
+ */
 async function deleteProductDocument(docRef, snapshot) {
   const snap = snapshot || await docRef.get();
   if (!snap.exists) {
@@ -89,6 +116,7 @@ async function deleteProductDocument(docRef, snapshot) {
     throw err;
   }
   const data = snap.data() || {};
+  // Primero eliminar la imagen para no dejar archivos huérfanos en Storage
   if (data.imagen) {
     await deleteImageFromUrl(data.imagen);
   }
@@ -133,7 +161,8 @@ app.use(express.static(path.join(__dirname, "tienda")));
 // Carpeta del panel admin
 app.use("/admin", express.static(path.join(__dirname, "admin")));
 
-// Configuración de Multer (para recibir imágenes)
+// Multer almacena el archivo en memoria (buffer) para pasárselo directamente
+// a Sharp sin escribir archivos temporales en disco.
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB máximo por archivo
@@ -200,7 +229,13 @@ app.get("/healthz/deep", async (_req, res) => {
   }
 });
 
-// 📦 Endpoint para subir producto
+/**
+ * POST /api/productos
+ * Crea un nuevo producto con imagen.
+ * Flujo: valida campos → verifica categoría en Firestore → optimiza imagen con Sharp
+ *        → sube a Storage → guarda documento en Firestore con la URL pública.
+ * Requiere multipart/form-data con campos: nombre, precio, categoria, imagen (file).
+ */
 app.post("/api/productos", upload.single("imagen"), async (req, res) => {
   try {
     const nombre = String(req.body?.nombre || "").trim();
@@ -272,7 +307,11 @@ app.post("/api/productos", upload.single("imagen"), async (req, res) => {
   }
 });
 
-// 🗑️ Endpoint para eliminar producto
+/**
+ * DELETE /api/productos/:id
+ * Elimina un producto de Firestore y su imagen de Firebase Storage.
+ * Usa deleteProductDocument() para garantizar que no queden imágenes huérfanas.
+ */
 app.delete("/api/productos/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -289,7 +328,11 @@ app.delete("/api/productos/:id", async (req, res) => {
   }
 });
 
-// 📂 Categorías
+/**
+ * GET /api/categorias
+ * Devuelve todas las categorías ordenadas por el campo "orden" (ascendente).
+ * Si dos categorías tienen el mismo orden, se ordenan alfabéticamente.
+ */
 app.get("/api/categorias", async (_req, res) => {
   try {
     const snapshot = await db.collection("categorias").get();
@@ -302,6 +345,12 @@ app.get("/api/categorias", async (_req, res) => {
   }
 });
 
+/**
+ * POST /api/categorias
+ * Crea una nueva categoría. El nombre se normaliza a minúsculas.
+ * Asigna automáticamente el siguiente número de orden (maxOrden + 1)
+ * para que aparezca al final en la lista de la tienda.
+ */
 app.post("/api/categorias", async (req, res) => {
   try {
     const nombre = String(req.body?.nombre || "").trim().toLowerCase();
@@ -323,6 +372,12 @@ app.post("/api/categorias", async (req, res) => {
   }
 });
 
+/**
+ * PATCH /api/categorias/:id
+ * Actualiza el campo "orden" de una categoría.
+ * El panel admin llama este endpoint para todas las categorías al mismo tiempo
+ * cuando el usuario reordena con las flechas (↑/↓), normalizando todos los índices.
+ */
 app.patch("/api/categorias/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -343,6 +398,13 @@ app.patch("/api/categorias/:id", async (req, res) => {
   }
 });
 
+/**
+ * DELETE /api/categorias/:id
+ * Elimina una categoría. Si tiene productos asociados:
+ *   - Sin ?cascade=true: responde 409 con la cantidad de productos afectados.
+ *   - Con ?cascade=true: elimina todos los productos y sus imágenes primero.
+ * El panel admin muestra una segunda confirmación antes de hacer cascade.
+ */
 app.delete("/api/categorias/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -394,7 +456,12 @@ app.delete("/api/categorias/:id", async (req, res) => {
   }
 });
 
-// ✏️ Editar nombre, precio y/o categoría de un producto
+/**
+ * PATCH /api/productos/:id
+ * Actualiza nombre, precio y/o categoría de un producto existente.
+ * Solo actualiza los campos enviados en el body (los vacíos se ignoran).
+ * Si se cambia la categoría, verifica que la nueva exista en Firestore.
+ */
 app.patch("/api/productos/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -431,7 +498,12 @@ app.patch("/api/productos/:id", async (req, res) => {
   }
 });
 
-// 📦 Obtener todos los productos
+/**
+ * GET /api/productos
+ * Devuelve todos los productos de la colección (sin paginación).
+ * Usado principalmente por el panel admin para mostrar el listado completo.
+ * La tienda frontend usa onSnapshot() directamente con Firestore SDK en el cliente.
+ */
 app.get("/api/productos", async (_req, res) => {
   try {
     const snapshot = await db.collection("productos").get();

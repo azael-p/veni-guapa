@@ -1,3 +1,15 @@
+/**
+ * admin.js — Lógica del panel de administración de Veni Guapa
+ *
+ * Funcionalidades:
+ *  - Autenticación simple: el admin key se guarda en localStorage y se envía
+ *    en cada petición API como header "x-admin-key".
+ *  - Carga y gestión de categorías (crear, reordenar, eliminar con/sin cascade).
+ *  - Subida de productos en lote: múltiples imágenes con nombre/precio/categoría individual.
+ *  - Listado de productos en tiempo real (onSnapshot) con filtro por categoría.
+ *  - Edición y eliminación individual o masiva de productos.
+ */
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -11,17 +23,29 @@ const firebaseConfig = {
     measurementId: "G-6PMCYPVTWQ"
 };
 
-// 🌐 URL del servidor: usa el mismo origen en producción (Render) y localhost en desarrollo
+// Detecta si estamos en desarrollo local para apuntar al servidor correcto
 const host = window.location.hostname;
 const isLocal = host === 'localhost' || host === '127.0.0.1';
 const SERVER_URL = isLocal ? 'http://localhost:3000' : window.location.origin;
+
+// Clave usada en localStorage para persistir el admin key entre sesiones
 const ADMIN_TOKEN_KEY = 'vg_admin_key';
+
+// Nombres de categorías disponibles (populado por cargarCategorias())
+// usado por los selects de categoría en la subida por lote
 let categoriasDisponibles = [];
+
+/** Construye los headers comunes para todas las peticiones a la API. */
 function adminHeaders() {
     const token = localStorage.getItem(ADMIN_TOKEN_KEY) || '';
     const base = { 'Accept': 'application/json' };
     return token ? { ...base, 'x-admin-key': token } : base;
 }
+
+/**
+ * Redirige a la página de login si no hay un admin key en localStorage.
+ * Se llama al cargar el script para proteger el panel ante acceso directo.
+ */
 function ensureAuth() {
     const hasToken = !!localStorage.getItem(ADMIN_TOKEN_KEY);
     if (!hasToken && !location.pathname.endsWith('/login.html')) {
@@ -31,6 +55,12 @@ function ensureAuth() {
 ensureAuth();
 
 const toastRoot = document.getElementById("toast-root");
+
+/**
+ * Muestra una notificación tipo toast en la esquina de la pantalla.
+ * Si el contenedor #toast-root no existe, cae a window.alert como fallback.
+ * @param {string} type - "info" | "success" | "warning" | "error"
+ */
 function showToast(message, type = "info", { duration = 3500 } = {}) {
     if (!toastRoot) {
         window.alert(message);
@@ -54,6 +84,12 @@ const confirmMessage = document.getElementById("confirm-message");
 const confirmAcceptBtn = confirmModal?.querySelector('[data-confirm="accept"]') || null;
 const confirmCancelBtn = confirmModal?.querySelector('[data-confirm="cancel"]') || null;
 
+/**
+ * Muestra un modal de confirmación personalizado (reemplaza window.confirm).
+ * Devuelve una Promise<boolean>: true si el usuario acepta, false si cancela.
+ * También se cierra con Escape o haciendo clic fuera del modal.
+ * Limpia todos los listeners al resolver para evitar memory leaks.
+ */
 function showConfirm(message, { confirmText = "Aceptar", cancelText = "Cancelar" } = {}) {
     if (!confirmModal || !confirmMessage || !confirmAcceptBtn || !confirmCancelBtn) {
         return Promise.resolve(window.confirm(message));
@@ -101,18 +137,25 @@ if (!firebaseConfig || String(firebaseConfig.apiKey || '').includes('TU_')) {
     console.warn('⚠️ Configuración de Firebase incompleta en admin.html');
 }
 
+// --- Referencias a elementos del DOM ---
 const form = document.getElementById("formProducto");
 const inputImagen = document.getElementById("imagen");
 const batchList = document.getElementById("batchList");
 const submitBtn = form?.querySelector('button[type="submit"]');
+
+// Map de id de fila → File original (conserva el archivo para subirlo al servidor)
 const batchFiles = new Map();
-let batchCounter = 0;
+let batchCounter = 0; // Contador para generar IDs únicos de filas en el batch
+
+// Controles de selección múltiple
 const seleccionContador = document.getElementById("seleccionContador");
 const btnSeleccionarTodo = document.getElementById("btnSeleccionarTodo");
 const btnLimpiarSeleccion = document.getElementById("btnLimpiarSeleccion");
 const btnEliminarSeleccion = document.getElementById("btnEliminarSeleccion");
+
+// Set con los IDs de Firestore de los productos actualmente seleccionados
 const selectedProducts = new Set();
-let filtroActual = "todas";
+let filtroActual = "todas"; // Categoría activa en el filtro del listado
 if (batchList) {
     batchList.innerHTML = `<p class="batch-placeholder">Seleccioná una o más imágenes para comenzar.</p>`;
 }
@@ -148,6 +191,11 @@ function renderPlaceholderBatch() {
     batchList.innerHTML = `<p class="batch-placeholder">Seleccioná una o más imágenes para comenzar.</p>`;
 }
 
+/**
+ * Crea un elemento <select> con las categorías disponibles.
+ * Se usa en cada fila del batch para asignar categoría por imagen.
+ * Si se pasa `selected`, preselecciona esa opción.
+ */
 function crearSelectCategorias(selected = "") {
     const select = document.createElement("select");
     select.required = true;
@@ -173,6 +221,11 @@ function crearSelectCategorias(selected = "") {
     return select;
 }
 
+/**
+ * Actualiza los selects de categoría en las filas del batch ya existentes.
+ * Se llama después de crear/eliminar una categoría para que los selects
+ * reflejen la lista actualizada sin perder la selección del usuario.
+ */
 function actualizarBatchCategorias() {
     const selects = batchList?.querySelectorAll(".batch-categoria") || [];
     selects.forEach((select) => {
@@ -187,6 +240,11 @@ function actualizarBatchCategorias() {
     });
 }
 
+/**
+ * Agrega una fila al listado de subida por lote con una preview de la imagen
+ * y campos para nombre, precio y categoría. Cada fila tiene un id único
+ * que se usa para relacionarla con su File en el Map batchFiles.
+ */
 function agregarFilaBatch(file, defaultCategoria = "") {
     if (!batchList) return;
     const id = `batch-${batchCounter++}`;
@@ -254,6 +312,12 @@ inputImagen?.addEventListener("change", (e) => {
     files.forEach((file) => agregarFilaBatch(file, defaultCat));
 });
 
+/**
+ * Sube cada producto del batch al servidor de forma secuencial (no paralela)
+ * para no saturar la API ni los límites de Firebase Storage.
+ * Detiene el proceso si hay un error de autenticación (401).
+ * Devuelve un objeto con la cantidad de éxitos, fallos y si se detuvo anticipadamente.
+ */
 async function subirBatchProductos(items) {
     let exitos = 0;
     let fallos = 0;
@@ -363,9 +427,17 @@ function pluralizarProductos(total) {
     return total === 1 ? "1 producto" : `${total} productos`;
 }
 
+// Referencia al unsubscribe del listener activo de productos (solo uno a la vez)
 let unsubscribeProductos = null;
+// Lista completa de objetos de categoría (incluye id y orden, no solo nombre)
 let categoriasLista = [];
 
+/**
+ * Suscribe un listener onSnapshot a la colección "productos".
+ * Agrupa los productos por categoría y renderiza cada grupo.
+ * Cancela el listener anterior para evitar múltiples suscripciones activas.
+ * Se llama al iniciar, al cambiar el filtro y después de subir/eliminar productos.
+ */
 function cargarProductos(filtro = filtroActual) {
     filtroActual = filtro;
     selectedProducts.clear();
@@ -550,6 +622,7 @@ const listaCategorias = document.getElementById("listaCategorias");
 const formCategoria = document.getElementById("formCategoria");
 const inputNuevaCategoria = document.getElementById("nuevaCategoria");
 
+/** Obtiene las categorías desde la API REST del servidor (no directamente de Firestore). */
 async function fetchCategoriasApi() {
     const res = await fetch(`${SERVER_URL}/api/categorias`);
     if (!res.ok) throw new Error("No se pudo obtener las categorías");
@@ -569,6 +642,13 @@ function escapeHtml(str = "") {
         .replace(/'/g, "&#39;");
 }
 
+/**
+ * Carga las categorías desde la API y actualiza:
+ *   - El select de categoría del formulario de subida
+ *   - El select de filtro del listado de productos
+ *   - El listado de gestión de categorías (con botones ↑↓ y Eliminar)
+ *   - Los selects de categoría en las filas del batch existentes
+ */
 async function cargarCategorias() {
     if (!categoriaSelect || !filtroSelect || !listaCategorias) return;
 
@@ -647,6 +727,10 @@ formCategoria?.addEventListener("submit", async (e) => {
     }
 });
 
+/**
+ * Realiza la petición DELETE a la API para eliminar una categoría.
+ * Con cascade=true el servidor también elimina todos sus productos e imágenes.
+ */
 async function eliminarCategoriaRequest(id, { cascade = false } = {}) {
     const param = cascade ? "?cascade=true" : "";
     const res = await fetch(`${SERVER_URL}/api/categorias/${id}${param}`, {
@@ -742,6 +826,11 @@ listaCategorias?.addEventListener("click", async (e) => {
     }
 });
 
+/**
+ * Elimina un producto vía API REST.
+ * Maneja el caso de sesión expirada (401) redirigiendo al login.
+ * Devuelve { ok, mensaje } o { status: "unauth" } si no hay autorización.
+ */
 async function eliminarProductoApi(id) {
     try {
         const res = await fetch(`${SERVER_URL}/api/productos/${id}`, {
@@ -770,6 +859,8 @@ async function eliminarProductoApi(id) {
 }
 
 // --- Editar producto ---
+// Modal de edición: permite modificar nombre, precio y categoría de un producto.
+// Funciona igual que showConfirm: devuelve una Promise con los nuevos datos o null.
 const editModal = document.getElementById("edit-modal");
 const editNombreInput = document.getElementById("editNombre");
 const editPrecioInput = document.getElementById("editPrecio");
@@ -837,6 +928,10 @@ function showEditModal({ nombre, precio, categoria }) {
     });
 }
 
+/**
+ * Envía los datos actualizados de un producto al servidor via PATCH.
+ * Solo incluye el campo "categoria" en el body si se proporcionó uno.
+ */
 async function editarProductoApi(id, nombre, precio, categoria) {
     try {
         const body = { nombre, precio };
@@ -887,7 +982,9 @@ document.addEventListener("click", async (e) => {
     }
 });
 
-// --- Cargar todo al iniciar ---
+// --- Inicialización al cargar el DOM ---
+// Carga las categorías primero (necesarias para los selects del formulario)
+// y luego el listado de productos. Registra el listener del filtro de categoría.
 document.addEventListener("DOMContentLoaded", async () => {
     const filtro = document.getElementById("filtroCategoria");
 

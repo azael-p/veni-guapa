@@ -1,3 +1,14 @@
+/**
+ * scripts.js — Lógica del frontend de la tienda Veni Guapa
+ *
+ * Responsabilidades principales:
+ *  - Inicializa Firebase y escucha productos/categorías en tiempo real (onSnapshot)
+ *  - Renderiza los carruseles de productos por categoría
+ *  - Maneja el modal de imagen ampliada (clic, swipe táctil, teclado)
+ *  - Genera links de WhatsApp personalizados por producto
+ *  - Inyecta el contenido estático de content.js (nombre, slogan, etc.)
+ */
+
 // --- Conexión con Firebase ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, onSnapshot, query, where, getDocs, limit, startAfter, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -66,6 +77,9 @@ const WA_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" 
 const IG_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>`;
 
 // --- Animación de entrada para tarjetas de producto ---
+// Agrega la clase "in-view" cuando la tarjeta entra en el viewport,
+// disparando la animación CSS. Se desconecta (unobserve) después del primer
+// disparo para no volver a animar si el usuario hace scroll hacia arriba.
 const cardObserver = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
         if (entry.isIntersecting) {
@@ -75,6 +89,7 @@ const cardObserver = new IntersectionObserver((entries) => {
     });
 }, { rootMargin: "0px 0px -40px 0px", threshold: 0.1 });
 
+// Formateador de precios para el mercado argentino (ej: $ 15.000)
 const currencyFormatter = new Intl.NumberFormat("es-AR", {
     style: "currency",
     currency: "ARS",
@@ -82,9 +97,15 @@ const currencyFormatter = new Intl.NumberFormat("es-AR", {
     maximumFractionDigits: 0
 });
 
+// Lista de categorías activas (cargadas desde Firestore al iniciar)
 let categorias = [];
+// Array de funciones unsubscribe de onSnapshot; se cancelan al recargar categorías
 let unsubscribeProductos = [];
 
+/**
+ * Genera el texto del mensaje de WhatsApp para consultar por un producto específico.
+ * Filtra líneas vacías para que el mensaje quede limpio.
+ */
 function buildProductMessage(nombre, categoria, precio = "") {
     const tienda = siteContent?.storeName || "la tienda";
     const lineas = [
@@ -99,19 +120,26 @@ function buildProductMessage(nombre, categoria, precio = "") {
     return lineas.join("\n");
 }
 
+/** Crea el link wa.me con el mensaje precompuesto para un producto puntual. */
 function buildWhatsAppLink(nombre, categoria, precio) {
     const mensaje = buildProductMessage(nombre, categoria, precio);
     return `https://wa.me/${CONTACT_WHATSAPP}?text=${encodeURIComponent(mensaje)}`;
 }
 
+/** Crea el link wa.me con un mensaje genérico (usado en hero y footer). */
 function buildGenericWhatsappLink(message) {
     return `https://wa.me/${CONTACT_WHATSAPP}?text=${encodeURIComponent(message)}`;
 }
 
+/** Pone en mayúscula solo la primera letra de un texto. */
 function capitalizar(texto = "") {
     return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
+/**
+ * Escapa caracteres especiales HTML para evitar XSS al insertar
+ * datos de Firestore directamente en innerHTML.
+ */
 function escapeHtml(str = "") {
     return String(str)
         .replace(/&/g, "&amp;")
@@ -121,10 +149,19 @@ function escapeHtml(str = "") {
         .replace(/'/g, "&#39;");
 }
 
+/**
+ * Convierte el nombre de una categoría al formato usado como id de elemento HTML.
+ * Ej: "Ropa de verano" → "ropa-de-verano"
+ */
 function categoriaId(nombre) {
     return nombre.replace(/\s+/g, "-").toLowerCase();
 }
 
+/**
+ * Formatea el precio de un producto para mostrarlo en la tienda.
+ * Acepta strings con símbolos y comas (ej: "15.000" o "15,000").
+ * Devuelve string vacío si el valor no es un número válido o es cero.
+ */
 function formatPrice(precio) {
     if (precio === undefined || precio === null || precio === "" || precio === 0) return "";
     const numero = Number(String(precio).replace(/[^\d.,-]/g, "").replace(",", "."));
@@ -132,6 +169,11 @@ function formatPrice(precio) {
     return currencyFormatter.format(numero);
 }
 
+/**
+ * Inyecta el contenido de content.js en los elementos estáticos de la página
+ * (nombre de tienda, slogan, links de contacto, footer, etc.).
+ * Se llama una sola vez al cargar el DOM, antes de los datos dinámicos de Firestore.
+ */
 function applyStaticContent() {
     const navBrand = document.getElementById("navStoreName");
     if (navBrand && siteContent?.storeName) {
@@ -206,6 +248,11 @@ function applyStaticContent() {
     }
 }
 
+/**
+ * Construye el DOM de categorías: fila de chips (botones de filtro) y
+ * un carrusel vacío por cada categoría. Los productos se inyectan después
+ * por cargarProductos(). Se limpia el contenido previo para evitar duplicados.
+ */
 function renderCategoriasDom(listaCategorias) {
     const seccion = document.getElementById("categorias");
     if (!seccion) return;
@@ -252,6 +299,11 @@ function resetCarruseles() {
     document.querySelectorAll(".carrusel").forEach((c) => c.classList.remove("visible"));
 }
 
+/**
+ * Obtiene las categorías desde Firestore ordenadas por el campo "orden".
+ * Usa getDocs (lectura única) en lugar de onSnapshot porque las categorías
+ * cambian raramente; la tienda solo necesita cargarlas al iniciar.
+ */
 async function obtenerCategorias() {
     try {
         const snapshot = await getDocs(collection(db, "categorias"));
@@ -272,8 +324,14 @@ async function inicializarCategorias() {
     cargarProductos();
 }
 
+// Cantidad máxima de productos que se cargan por categoría en la primera consulta.
+// Si hay más, aparece el botón "Ver más" para cargar el siguiente lote.
 const LIMITE_PRODUCTOS = 12;
 
+/**
+ * Muestra tarjetas "skeleton" (placeholders animados) mientras se cargan
+ * los productos reales desde Firestore, mejorando la experiencia de carga.
+ */
 function renderSkeletons(galeria, count = 4) {
     galeria.innerHTML = "";
     for (let i = 0; i < count; i++) {
@@ -328,7 +386,11 @@ function renderItem(galeria, data, categoria, delaySegundos) {
     }
 }
 
-// Carga productos adicionales al hacer clic en "Ver más"
+/**
+ * Carga el siguiente lote de productos al hacer clic en "Ver más".
+ * Usa startAfter(lastDoc) para paginar desde el último documento recibido.
+ * Si el nuevo lote también llega al límite, agrega otro botón "Ver más".
+ */
 async function cargarMasProductos(galeria, inner, categoria, lastDoc) {
     try {
         const q = query(
@@ -368,7 +430,12 @@ function agregarBotonVerMas(inner, galeria, categoria, lastDoc) {
     inner.appendChild(btn);
 }
 
-// --- Cargar productos desde Firebase ---
+/**
+ * Suscribe listeners onSnapshot para cada categoría.
+ * Cada listener actualiza su carrusel en tiempo real cuando los productos cambian
+ * en Firestore (alta, baja o modificación desde el panel admin).
+ * Cancela los listeners anteriores antes de crear nuevos para evitar duplicados.
+ */
 async function cargarProductos() {
     if (!categorias.length) return;
 
@@ -457,6 +524,9 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // --- Mostrar solo una categoría a la vez con indicador ---
+// Al hacer clic en un chip de categoría: oculta todos los demás carruseles,
+// quita el estilo "activo" de los otros botones, y alterna la visibilidad
+// del carrusel correspondiente (toggle: si ya estaba visible lo cierra).
 document.addEventListener("click", (e) => {
     const boton = e.target.closest(".boton-categoria");
     if (!boton) return;
@@ -486,6 +556,11 @@ document.addEventListener("click", (e) => {
 });
 
 // --- Modal de imágenes ampliadas ---
+// Se crea dinámicamente y se adjunta al body. Soporta:
+//   - Clic en tarjeta o imagen para abrir
+//   - Flechas laterales y swipe táctil para navegar entre imágenes de la misma categoría
+//   - Teclas ←/→ para navegar y Escape para cerrar
+//   - Clic en el fondo oscuro para cerrar
 const modal = document.createElement("div");
 modal.classList.add("modal");
 modal.setAttribute("role", "dialog");
@@ -514,8 +589,10 @@ const modalCounter = modal.querySelector(".modal-counter");
 const modalName = modal.querySelector(".modal-name");
 const modalPrice = modal.querySelector(".modal-price");
 const modalWhatsapp = modal.querySelector(".modal-cta.whatsapp");
+// Estado del modal: lista de imágenes del carrusel activo e índice actual
 let imagenes = [];
 let indiceActual = 0;
+// Variables para detectar swipe táctil (touchstart → touchmove)
 let startX = 0;
 let isSwiping = false;
 
@@ -583,6 +660,11 @@ modal.addEventListener("touchend", () => {
     isSwiping = false;
 });
 
+/**
+ * Actualiza el contador, nombre, precio y link de WhatsApp del modal
+ * según la imagen que se está mostrando. Los datos extra (nombre, precio,
+ * categoría) se almacenan como data-attributes en cada <img> al renderizar.
+ */
 function actualizarMeta(indice) {
     if (!imagenes[indice]) return;
     const img = imagenes[indice];
@@ -604,17 +686,26 @@ function actualizarMeta(indice) {
     }
 }
 
+/**
+ * Muestra la imagen en el modal con animación de dirección opcional.
+ * El truco `void modalImg.offsetWidth` fuerza un reflow del DOM para
+ * que la animación CSS se reinicie correctamente al cambiar de clase.
+ */
 function mostrarImagen(indice, direccionAnim = 0) {
     if (!imagenes[indice]) return;
     modalImg.classList.remove("anim-left", "anim-right");
     if (direccionAnim !== 0) {
-        void modalImg.offsetWidth; // reinicia animación
+        void modalImg.offsetWidth; // fuerza reflow para reiniciar animación CSS
         modalImg.classList.add(direccionAnim > 0 ? "anim-right" : "anim-left");
     }
     modalImg.src = imagenes[indice].src;
     actualizarMeta(indice);
 }
 
+/**
+ * Avanza o retrocede en el carrusel del modal de forma circular.
+ * El módulo (%) garantiza que al llegar al final vuelva al inicio y viceversa.
+ */
 function cambiarImagen(direccion) {
     indiceActual = (indiceActual + direccion + imagenes.length) % imagenes.length;
     mostrarImagen(indiceActual, direccion);
