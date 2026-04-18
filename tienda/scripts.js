@@ -732,3 +732,20 @@ document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") cerrarModal();
     }
 });
+
+modal.querySelectorAll(".modal-flecha, .modal-cta").forEach((el) => {
+    el.addEventListener("click", (e) => {
+        e.stopPropagation();
+    });
+});
+
+function preloadImagen(indice) {
+    if (!imagenes[indice]) return;
+    const img = new Image();
+    img.src = imagenes[indice].src;
+}
+
+modal.addEventListener("animationend", () => {
+    preloadImagen((indiceActual + 1) % imagenes.length);
+    preloadImagen((indiceActual - 1 + imagenes.length) % imagenes.length);
+});

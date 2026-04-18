@@ -1,3 +1,7 @@
+html {
+  scroll-behavior: smooth;
+}
+
 /* Variables */
 :root {
   --color-principal: #8B5E3C; /* Richer Terracotta/Brown */
