@@ -567,7 +567,9 @@ modal.setAttribute("role", "dialog");
 modal.setAttribute("aria-modal", "true");
 modal.setAttribute("aria-label", "Imagen ampliada");
 modal.innerHTML = `
-<button class="modal-flecha izquierda" aria-label="Imagen anterior">‹</button>
+<button class="modal-flecha izquierda" aria-label="Imagen anterior">
+  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+</button>
 <div class="modal-body">
     <img class="modal-img" alt="">
     <div class="modal-info">
@@ -579,7 +581,9 @@ modal.innerHTML = `
         <a class="modal-cta whatsapp" target="_blank" rel="noopener noreferrer">Consultar por WhatsApp</a>
     </div>
 </div>
-<button class="modal-flecha derecha" aria-label="Imagen siguiente">›</button>
+<button class="modal-flecha derecha" aria-label="Imagen siguiente">
+  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+</button>
 <span class="cerrar">&times;</span>
 `;
 document.body.appendChild(modal);
@@ -622,12 +626,6 @@ document.addEventListener("click", (e) => {
         abrirModal();
     } else if (e.target.classList.contains("cerrar")) {
         cerrarModal();
-    } else if (e.target.classList.contains("modal-flecha")) {
-    if (e.target.classList.contains("izquierda")) {
-        cambiarImagen(-1);
-    } else if (e.target.classList.contains("derecha")) {
-        cambiarImagen(1);
-    }
     }
 });
 
@@ -733,11 +731,8 @@ document.addEventListener("keydown", (e) => {
     }
 });
 
-modal.querySelectorAll(".modal-flecha, .modal-cta").forEach((el) => {
-    el.addEventListener("click", (e) => {
-        e.stopPropagation();
-    });
-});
+modal.querySelector(".modal-flecha.izquierda").addEventListener("click", () => cambiarImagen(-1));
+modal.querySelector(".modal-flecha.derecha").addEventListener("click", () => cambiarImagen(1));
 
 function preloadImagen(indice) {
     if (!imagenes[indice]) return;

@@ -814,18 +814,28 @@ footer p {
 }
 
 .modal-flecha {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
   color: white;
-  border: none;
-  font-size: 2.8rem;
-  padding: 1.4rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  width: 52px;
+  height: 52px;
+  padding: 0;
   cursor: pointer;
   border-radius: 50%;
   transition: var(--transicion);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.25);
 }
 
 .modal-flecha:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.35);
+  border-color: rgba(255, 255, 255, 0.6);
+  transform: scale(1.1);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
 }
 
 /* Skeletons de carga */
