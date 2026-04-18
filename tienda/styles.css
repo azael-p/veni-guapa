@@ -814,6 +814,9 @@ footer p {
 }
 
 .modal-flecha {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
   background: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(8px);
   color: white;
@@ -823,18 +826,26 @@ footer p {
   padding: 0;
   cursor: pointer;
   border-radius: 50%;
-  transition: var(--transicion);
+  transition: background var(--transicion), border-color var(--transicion), box-shadow var(--transicion), transform var(--transicion);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
   box-shadow: 0 2px 16px rgba(0, 0, 0, 0.25);
+  z-index: 10;
+}
+
+.modal-flecha.izquierda {
+  left: 1.5rem;
+}
+
+.modal-flecha.derecha {
+  right: 1.5rem;
 }
 
 .modal-flecha:hover {
   background: rgba(255, 255, 255, 0.35);
   border-color: rgba(255, 255, 255, 0.6);
-  transform: scale(1.1);
+  transform: translateY(-50%) scale(1.1);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
 }
 
