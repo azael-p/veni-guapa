@@ -177,7 +177,9 @@ function formatPrice(precio) {
 function applyStaticContent() {
     const navBrand = document.getElementById("navStoreName");
     if (navBrand && siteContent?.storeName) {
+        const logoEl = navBrand.querySelector(".navbar-logo");
         navBrand.textContent = siteContent.storeName;
+        if (logoEl) navBrand.prepend(logoEl);
     }
     const title = document.getElementById("storeTitle");
     if (title && siteContent?.storeName) {
