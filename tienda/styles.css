@@ -109,6 +109,16 @@ header, main, footer {
   text-decoration: none;
   letter-spacing: -0.5px;
   text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.navbar-logo {
+  height: 36px;
+  width: 36px;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .navbar-nav-link {
